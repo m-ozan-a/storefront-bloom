@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { X, Heart } from 'lucide-react';
+import { X, Heart, ShoppingBag } from 'lucide-react';
 import { useWishlistStore } from '@/lib/owuan/stores';
 import { useCartStore } from '@/lib/owuan/stores';
 import { products } from '@/lib/owuan/dummy-data';

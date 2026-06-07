@@ -25,6 +25,8 @@ export interface Product {
   isNew: boolean;
   isBestseller: boolean;
   discount?: number;
+  campaignBadges?: CampaignBadge[];
+  labels?: { title: string; slug: string }[];
 }
 
 export interface ProductOption {
@@ -112,6 +114,7 @@ export interface ManifestCategory {
   slug: string;
   subTitle: string | null;
   description: string | null;
+  image?: string | null;
   parentId?: number;
   isActive: boolean;
 }
@@ -122,6 +125,7 @@ export interface ManifestCollection {
   slug: string;
   subTitle: string | null;
   description: string | null;
+  image?: string | null;
   isActive: boolean;
 }
 
@@ -182,6 +186,31 @@ export interface ManifestStore {
   template: string;
 }
 
+export interface ManifestCampaign {
+  uid: string;
+  title: string;
+  campaignType: "discount_percent" | "discount_amount" | "buy_x_get_y" | "free_shipping";
+  discountPercent: number | null;
+  discountAmount: number | null;
+  minimumOrderAmount: number | null;
+  startsAt: number;
+  endsAt: number;
+}
+
+export interface CampaignBadge {
+  campaignUid: string;
+  type: string;
+  label: string;
+}
+
+export interface AppliedCampaign {
+  uid: string;
+  title: string;
+  campaignType: string;
+  discountApplied: number;
+  description: string;
+}
+
 export interface Manifest {
   store: ManifestStore;
   categories: ManifestCategory[];
@@ -192,6 +221,7 @@ export interface Manifest {
   paymentGateways: ManifestPaymentGateway[];
   carrierGateways: ManifestCarrierGateway[];
   guestCheckoutEnabled: boolean;
+  activeCampaigns: ManifestCampaign[];
 }
 
 export interface Page {

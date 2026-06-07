@@ -1,0 +1,21 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "AGENTS.md",
+    ".opencode/agents/storefront-api.md"
+  ],
+  "command": {
+    "dev": {
+      "description": "Storefront dev server'ı başlat",
+      "template": "Start the B2C storefront dev server. The owuan API must also be running at localhost:3000. Use: source ~/.zshrc && cd /Users/owuan/www/b2c-client-storefront && pnpm dev. The storefront runs at localhost:3002."
+    },
+    "check": {
+      "description": "Lint kontrolü",
+      "template": "Run linting on the storefront codebase. Show any issues found."
+    },
+    "browser-test": {
+      "description": "Storefront sayfalarını browser ile test et",
+      "template": "Ensure both the owuan API (localhost:3000) and storefront (localhost:3002) dev servers are running. Use next-devtools_browser_eval to test storefront pages. Start browser, navigate to http://localhost:3002, and test the homepage, product page, search page, cart, and checkout flow. Take screenshots and check console for errors. The API key is already configured in .env — auth should work automatically."
+    }
+  }
+}

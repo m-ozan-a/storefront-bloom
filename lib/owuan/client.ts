@@ -1,14 +1,24 @@
 // Owuan Storefront API Client
 // All requests go through /api/proxy/[...] to keep OWUAN_STORE_API_KEY server-only
 
-// Server-side: call app.owuan.com directly (API key available)
+// Server-side: call owuan API directly (API key available)
 // Client-side: go through /api/proxy to keep API key server-only
 
-const REMOTE_API = process.env.NEXT_PUBLIC_OWUAN_API_URL || "https://app.owuan.com";
+function getApiBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_OWUAN_API_URL) {
+    return process.env.NEXT_PUBLIC_OWUAN_API_URL;
+  }
+  if (process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production") {
+    return "https://app.owuan.com";
+  }
+  return "http://localhost:3000";
+}
+
+const API_BASE = getApiBaseUrl();
 
 function proxyUrl(endpoint: string): string {
   if (typeof window === "undefined") {
-    return `${REMOTE_API}/api${endpoint}`;
+    return `${API_BASE}/api${endpoint}`;
   }
   return `/api/proxy${endpoint}`;
 }
@@ -165,8 +175,37 @@ export async function getMenu(
 
 // ---- Page (stub) ----
 
-export async function getPage(): Promise<undefined> { return undefined; }
+export async function getPage(_handle: string): Promise<undefined> { return undefined; }
 export async function getPages(): Promise<[]> { return []; }
+
+// ---- Cart ----
+
+export async function getCart(): Promise<{
+  id: string | null;
+  items: Array<{
+    id: string;
+    variantId: number;
+    quantity: number;
+    price: { amount: string; currencyCode: string };
+    compareAtPrice?: { amount: string; currencyCode: string };
+  }>;
+  total: number;
+  taxTotal: number;
+  shippingTotal: number;
+  discountTotal: number;
+  totalQuantity: number;
+  appliedCampaigns: Array<{
+    uid: string;
+    title: string;
+    campaignType: string;
+    discountApplied: number;
+    description: string;
+  }>;
+} | null> {
+  try {
+    return await proxyFetch("/storefront/cart");
+  } catch { return null; }
+}
 
 // ---- Checkout ----
 
@@ -182,6 +221,41 @@ export async function guestCheckout(data: GuestCheckoutData): Promise<CheckoutRe
   return proxyFetch<CheckoutResult>("/storefront/checkout/guest", { method: "POST", body: data });
 }
 
-export async function memberCheckout(addressId: string, note?: string): Promise<CheckoutResult> {
-  return proxyFetch<CheckoutResult>("/storefront/checkout", { method: "POST", body: { addressId, note } });
+export async function memberCheckout(addressId: string, note?: string, paymentProvider?: string, deliveryOptionId?: string): Promise<CheckoutResult> {
+  return proxyFetch<CheckoutResult>("/storefront/checkout", { method: "POST", body: { addressId, note, paymentProvider, deliveryOptionId } });
+}
+
+// ---- Payment Gateway ----
+
+export interface InitPaymentData {
+  gatewayUid: string;
+  orderId: string;
+  amount: string;
+  currency?: string;
+  returnUrl: string;
+  failUrl: string;
+  customer?: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+  };
+  basket?: Array<{ name: string; price: number; quantity: number }>;
+}
+
+export interface InitPaymentResult {
+  success: boolean;
+  redirectUrl?: string;
+  gatewayTransactionId?: string;
+  error?: string;
+}
+
+export async function initPayment(data: InitPaymentData): Promise<InitPaymentResult> {
+  return proxyFetch<InitPaymentResult>("/storefront/checkout/pay/init", { method: "POST", body: data });
+}
+
+// ---- Carrier Rates ----
+
+export async function getCarrierRates(data: { gatewayUid: string; items: unknown[]; price: number }) {
+  return proxyFetch("/storefront/checkout/carrier/rates", { method: "POST", body: data });
 }

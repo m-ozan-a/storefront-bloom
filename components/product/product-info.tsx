@@ -33,8 +33,8 @@ export function ProductInfo({ product }: ProductInfoProps) {
   ) || product.variants[0];
 
   const price = parseFloat(selectedVariant?.price.amount || product.priceRange.minVariantPrice.amount);
-  const originalPrice = product.discount
-    ? price / (1 - product.discount / 100)
+  const originalPrice = selectedVariant?.compareAtPrice
+    ? parseFloat(selectedVariant.compareAtPrice.amount)
     : null;
 
   const handleAddToCart = () => {
@@ -94,12 +94,18 @@ export function ProductInfo({ product }: ProductInfoProps) {
             {formatPrice(originalPrice.toFixed(2))}
           </span>
         )}
-        {product.discount && (
-          <span className="rounded bg-rose-100 px-2 py-0.5 text-sm font-medium text-rose-600">
-            Save {product.discount}%
-          </span>
-        )}
       </div>
+
+      {/* Campaign Badges */}
+      {product.campaignBadges && product.campaignBadges.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {product.campaignBadges.map((badge) => (
+            <span key={badge.campaignUid} className="rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white">
+              {badge.label}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Description */}
       <p className="text-muted-foreground">{product.description}</p>

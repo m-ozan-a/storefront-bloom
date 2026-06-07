@@ -1,14 +1,64 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight } from 'lucide-react';
-import { getProducts } from '@/lib/owuan';
+import { ArrowRight, Percent, Truck } from 'lucide-react';
+import { getProducts, getManifest } from '@/lib/owuan';
 import { collections } from '@/lib/owuan/dummy-data';
 import { ProductGrid } from '@/components/product';
 import { Button } from '@/components/ui/button';
+import type { ManifestCampaign } from '@/lib/owuan/types';
+
+function getCampaignIcon(type: string) {
+  switch (type) {
+    case 'discount_percent':
+    case 'discount_amount':
+      return <Percent className="h-5 w-5" />;
+    case 'free_shipping':
+      return <Truck className="h-5 w-5" />;
+    default:
+      return <Percent className="h-5 w-5" />;
+  }
+}
+
+function CampaignBanner({ campaign }: { campaign: ManifestCampaign }) {
+  let label = '';
+  switch (campaign.campaignType) {
+    case 'discount_percent':
+      label = `%${campaign.discountPercent} İndirim`;
+      break;
+    case 'discount_amount':
+      label = `₺${campaign.discountAmount} İndirim`;
+      break;
+    case 'free_shipping':
+      label = 'Ücretsiz Kargo';
+      break;
+    case 'buy_x_get_y':
+      label = campaign.title;
+      break;
+    default:
+      label = campaign.title;
+  }
+
+  return (
+    <div className="flex items-center gap-3 rounded-lg bg-gradient-to-r from-pink-500/10 to-rose-500/10 border border-pink-200 px-4 py-3">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-pink-100 text-pink-600">
+        {getCampaignIcon(campaign.campaignType)}
+      </div>
+      <div>
+        <p className="font-semibold text-foreground">{label}</p>
+        <p className="text-sm text-muted-foreground">{campaign.title}</p>
+      </div>
+    </div>
+  );
+}
 
 export default async function HomePage() {
   const newArrivals = await getProducts({ collection: 'new-arrivals' });
   const bestsellers = await getProducts({ collection: 'bestsellers' });
+  let activeCampaigns: ManifestCampaign[] = [];
+  try {
+    const manifest = await getManifest();
+    activeCampaigns = manifest.activeCampaigns || [];
+  } catch {}
 
   return (
     <main>
@@ -52,6 +102,16 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {activeCampaigns.length > 0 && (
+        <section className="container mx-auto px-4 -mt-8 relative z-10">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {activeCampaigns.slice(0, 3).map((campaign) => (
+              <CampaignBanner key={campaign.uid} campaign={campaign} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Categories Grid */}
       <section className="container mx-auto px-4 py-20">

@@ -2,15 +2,17 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Minus, Plus, Trash2, ArrowLeft, ShoppingBag, Lock, Loader2 } from 'lucide-react';
+import { Minus, Plus, Trash2, ArrowLeft, ShoppingBag, Lock, Loader2, CreditCard, Truck } from 'lucide-react';
 import Image from 'next/image';
 import { useCartStore } from '@/lib/owuan/stores';
 import { formatPrice } from '@/lib/owuan';
 import { useAuth } from '@/components/auth';
-import { guestCheckout, memberCheckout } from '@/lib/owuan/client';
+import { guestCheckout, memberCheckout, initPayment, getManifest, getCart } from '@/lib/owuan/client';
+import type { ManifestPaymentGateway, ManifestCarrierGateway } from '@/lib/owuan/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { useEffect, useState } from 'react';
 
 export default function CheckoutPage() {
@@ -20,6 +22,10 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [checkoutMode, setCheckoutMode] = useState<'guest' | 'member'>('guest');
+  const [paymentGateways, setPaymentGateways] = useState<ManifestPaymentGateway[]>([]);
+  const [carrierGateways, setCarrierGateways] = useState<ManifestCarrierGateway[]>([]);
+  const [selectedGateway, setSelectedGateway] = useState<string>('');
+  const [selectedCarrier, setSelectedCarrier] = useState<string>('');
   const router = useRouter();
 
   // Guest form
@@ -34,11 +40,23 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     setMounted(true);
-  }, []);
-
-  useEffect(() => {
     if (user) setCheckoutMode('member');
   }, [user]);
+
+  useEffect(() => {
+    getManifest().then((m) => {
+      setPaymentGateways(m.paymentGateways || []);
+      setCarrierGateways(m.carrierGateways || []);
+    }).catch(() => {});
+  }, []);
+
+  const [serverCart, setServerCart] = useState<{ discountTotal: number; appliedCampaigns: Array<{ description: string; discountApplied: number }> } | null>(null);
+
+  useEffect(() => {
+    getCart().then((cart) => {
+      if (cart) setServerCart(cart);
+    }).catch(() => {});
+  }, []);
 
   if (!mounted) {
     return (
@@ -72,7 +90,7 @@ export default function CheckoutPage() {
   const subtotal = parseFloat(cart.cost.subtotalAmount.amount);
   const shipping = subtotal >= 1500 ? 0 : 49.99;
   const tax = subtotal * 0.2;
-  const total = subtotal + shipping;
+  const total = subtotal + shipping - (serverCart?.discountTotal || 0);
 
   const handleGuestCheckout = async () => {
     setError('');
@@ -95,7 +113,32 @@ export default function CheckoutPage() {
           country: '792',
         },
         note: orderNote || undefined,
+        paymentProvider: selectedGateway || undefined,
+        deliveryOptionId: selectedCarrier || undefined,
       });
+
+      if (selectedGateway) {
+        const payResult = await initPayment({
+          gatewayUid: selectedGateway,
+          orderId: result.orderId,
+          amount: total.toFixed(2),
+          currency: 'TRY',
+          returnUrl: `${window.location.origin}/checkout/success?orderId=${result.orderNumber}`,
+          failUrl: `${window.location.origin}/checkout?error=payment_failed`,
+          customer: {
+            name: guestFullName,
+            email: guestEmail,
+            phone: guestPhone,
+            address: guestAddress,
+          },
+        });
+        if (payResult.success && payResult.redirectUrl) {
+          clearCart();
+          window.location.href = payResult.redirectUrl;
+          return;
+        }
+      }
+
       clearCart();
       router.push(`/checkout/success?orderId=${result.orderNumber}`);
     } catch (e) {
@@ -109,7 +152,24 @@ export default function CheckoutPage() {
     setError('');
     setIsSubmitting(true);
     try {
-      const result = await memberCheckout('', orderNote || undefined);
+      const result = await memberCheckout('', orderNote || undefined, selectedGateway || undefined, selectedCarrier || undefined);
+
+      if (selectedGateway) {
+        const payResult = await initPayment({
+          gatewayUid: selectedGateway,
+          orderId: result.orderId,
+          amount: total.toFixed(2),
+          currency: 'TRY',
+          returnUrl: `${window.location.origin}/checkout/success?orderId=${result.orderNumber}`,
+          failUrl: `${window.location.origin}/checkout?error=payment_failed`,
+        });
+        if (payResult.success && payResult.redirectUrl) {
+          clearCart();
+          window.location.href = payResult.redirectUrl;
+          return;
+        }
+      }
+
       clearCart();
       router.push(`/checkout/success?orderId=${result.orderNumber}`);
     } catch (e) {
@@ -352,6 +412,76 @@ export default function CheckoutPage() {
             {error && (
               <p className="mt-4 text-sm text-red-600 bg-red-50 rounded-lg p-3">{error}</p>
             )}
+
+            {paymentGateways.length > 0 && (
+              <div className="border-t border-border pt-6 mt-6">
+                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Ödeme Yöntemi
+                </h3>
+                <div className="space-y-2">
+                  {paymentGateways.map((gw) => (
+                    <label
+                      key={gw.uid}
+                      className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                        selectedGateway === gw.uid
+                          ? 'border-foreground bg-foreground/5'
+                          : 'border-border hover:border-muted-foreground'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentGateway"
+                        value={gw.uid}
+                        checked={selectedGateway === gw.uid}
+                        onChange={() => setSelectedGateway(gw.uid)}
+                        className="h-4 w-4 accent-foreground"
+                      />
+                      <div className="flex-1">
+                        <span className="font-medium text-sm">{gw.name}</span>
+                        {gw.isTestMode && (
+                          <Badge variant="outline" className="ml-2 text-xs">Test</Badge>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {carrierGateways.length > 0 && (
+              <div className="border-t border-border pt-6 mt-6">
+                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <Truck className="h-4 w-4" />
+                  Kargo Seçimi
+                </h3>
+                <div className="space-y-2">
+                  {carrierGateways.map((gw) => (
+                    <label
+                      key={gw.uid}
+                      className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                        selectedCarrier === gw.uid
+                          ? 'border-foreground bg-foreground/5'
+                          : 'border-border hover:border-muted-foreground'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="carrierGateway"
+                        value={gw.uid}
+                        checked={selectedCarrier === gw.uid}
+                        onChange={() => setSelectedCarrier(gw.uid)}
+                        className="h-4 w-4 accent-foreground"
+                      />
+                      <span className="font-medium text-sm">{gw.name}</span>
+                      {gw.isTestMode && (
+                        <Badge variant="outline" className="ml-2 text-xs">Test</Badge>
+                      )}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -381,6 +511,18 @@ export default function CheckoutPage() {
                   {formatPrice(tax.toFixed(2))}
                 </span>
               </div>
+              {serverCart && serverCart.discountTotal > 0 && (
+                <div className="flex justify-between text-sm text-emerald-600">
+                  <span>İndirimler</span>
+                  <span>-{formatPrice(serverCart.discountTotal.toFixed(2))}</span>
+                </div>
+              )}
+              {serverCart?.appliedCampaigns?.map((campaign, i) => (
+                <div key={i} className="flex justify-between text-xs text-muted-foreground">
+                  <span>{campaign.description}</span>
+                  <span>-{formatPrice(campaign.discountApplied.toFixed(2))}</span>
+                </div>
+              ))}
               <div className="border-t border-border pt-3">
                 <div className="flex justify-between text-base font-semibold">
                   <span>Toplam</span>

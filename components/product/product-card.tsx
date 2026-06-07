@@ -65,6 +65,14 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               -{product.discount}%
             </span>
           )}
+          {product.campaignBadges?.slice(0, 2).map((badge) => (
+            <span
+              key={badge.campaignUid}
+              className="bg-emerald-600 px-2 py-1 text-xs font-medium text-white"
+            >
+              {badge.label}
+            </span>
+          ))}
         </div>
 
         {/* Wishlist Button */}

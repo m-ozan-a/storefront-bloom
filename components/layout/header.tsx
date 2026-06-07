@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, ShoppingBag, Heart, User, Menu, X } from 'lucide-react';
+import { Search, ShoppingBag, Heart, User, Menu as MenuIcon, X } from 'lucide-react';
 import { useCartStore, useWishlistStore } from '@/lib/owuan/stores';
 import { getMenu } from '@/lib/owuan';
 import type { Menu } from '@/lib/owuan/types';
@@ -76,7 +76,7 @@ export function Header() {
             {isMobileMenuOpen ? (
               <X className="h-6 w-6" />
             ) : (
-              <Menu className="h-6 w-6" />
+              <MenuIcon className="h-6 w-6" />
             )}
           </button>
 
