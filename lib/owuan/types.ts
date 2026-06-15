@@ -176,14 +176,24 @@ export interface ManifestStore {
   favicon: string | null;
   ogImage: string | null;
   address: string;
+  geoLocation: string | null;
   phone: string;
   email: string;
   gtagId: string | null;
   facebookPixelId: string | null;
   googleAnalyticsId: string | null;
   tiktokPixelId: string | null;
+  otherPixelId: string | null;
+  metaTitle: string | null;
+  metaDescription: string | null;
   storeType: string;
   template: string;
+  taxtNumber: string | null;
+  taxtOffice: string | null;
+  mersisNumber: string | null;
+  kepNumber: string | null;
+  defaultPaymentGateway: string | null;
+  defaultCarrierGateway: string | null;
 }
 
 export interface ManifestCampaign {
@@ -211,6 +221,74 @@ export interface AppliedCampaign {
   description: string;
 }
 
+export interface ManifestTheme {
+  uid: string;
+  name: string;
+  version: string;
+  colors: {
+    light?: Record<string, string>;
+    dark?: Record<string, string>;
+  } | null;
+  fontFamilies: {
+    heading?: string;
+    sans?: string;
+    mono?: string;
+  } | null;
+  borderRadius: string | null;
+  darkModeSupport: boolean;
+  headerStyle: string | null;
+  footerStyle: string | null;
+  productCardStyle: string | null;
+  productGridColumns: number | null;
+  components: Record<string, boolean>;
+  sections: SectionsData | null;
+  customCss: string | null;
+  customHeadHtml: string | null;
+}
+
+export interface NavItem {
+  title: string;
+  type: "category" | "collection" | "brand" | "custom" | "page";
+  slug?: string;
+  path?: string;
+  image?: string;
+  children?: NavItem[];
+}
+
+export interface SectionsData {
+  navigation?: {
+    header?: NavItem[];
+    footer?: NavItem[];
+  };
+  homepage?: {
+    hero?: {
+      heading: string;
+      subheading?: string;
+      ctaText?: string;
+      ctaUrl?: string;
+      imageUrl?: string;
+      videoUrl?: string;
+    };
+    banners?: {
+      title: string;
+      description?: string;
+      imageUrl: string;
+      linkUrl: string;
+      position?: number;
+    }[];
+    carousels?: {
+      title?: string;
+      images: { url: string; alt?: string; linkUrl?: string }[];
+    }[];
+    productCarousels?: {
+      title: string;
+      collection?: string;
+      tag?: string;
+      maxItems?: number;
+    }[];
+  };
+}
+
 export interface Manifest {
   store: ManifestStore;
   categories: ManifestCategory[];
@@ -222,15 +300,17 @@ export interface Manifest {
   carrierGateways: ManifestCarrierGateway[];
   guestCheckoutEnabled: boolean;
   activeCampaigns: ManifestCampaign[];
+  activeTheme: ManifestTheme | null;
 }
 
 export interface Page {
-  id: string;
+  uid: string;
+  slug: string;
   title: string;
-  handle: string;
-  body: string;
-  bodySummary: string;
-  seo: SEO;
+  content: string;
+  metaTitle: string;
+  metaDescription: string;
+  isPublished: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -243,11 +323,24 @@ export interface User {
   createdAt: string;
 }
 
+export interface WishlistProduct {
+  id: string;
+  handle: string;
+  title: string;
+  brand?: string;
+  priceRange: {
+    minVariantPrice: { amount: string; currencyCode: string };
+  };
+  featuredImage: { url: string; altText: string; width: number; height: number } | null;
+  variants: { id: string; availableForSale: boolean }[];
+}
+
 export interface WishlistItem {
   id: string;
   productId: string;
   userId: string;
   addedAt: string;
+  product?: WishlistProduct;
 }
 
 export interface Address {

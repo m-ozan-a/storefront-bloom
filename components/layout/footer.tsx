@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { Instagram, Facebook, Twitter, Youtube } from "lucide-react";
-import { getCollections } from "@/lib/owuan";
+import { Instagram, Facebook, Twitter, Youtube, Loader2, Check, AlertCircle } from "lucide-react";
+import { getCollections, subscribeToNewsletter } from "@/lib/owuan";
 import { footerMenu } from "@/lib/owuan/dummy-data";
 import type { Collection } from "@/lib/owuan/types";
 import { Input } from "@/components/ui/input";
@@ -11,10 +11,29 @@ import { Button } from "@/components/ui/button";
 
 export function Footer() {
   const [collections, setCollections] = useState<Collection[]>([]);
+  const [email, setEmail] = useState("");
+  const [newsletterStatus, setNewsletterStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [newsletterMessage, setNewsletterMessage] = useState("");
 
   useEffect(() => {
     getCollections().then(setCollections).catch(() => setCollections([]));
   }, []);
+
+  async function handleNewsletterSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!email || newsletterStatus === "loading") return;
+    setNewsletterStatus("loading");
+    setNewsletterMessage("");
+    try {
+      await subscribeToNewsletter(email);
+      setNewsletterStatus("success");
+      setNewsletterMessage("Thank you for subscribing!");
+      setEmail("");
+    } catch (err) {
+      setNewsletterStatus("error");
+      setNewsletterMessage(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    }
+  }
   return (
     <footer className="bg-foreground text-background">
       {/* Newsletter Section */}
@@ -27,15 +46,41 @@ export function Footer() {
             <p className="mt-2 text-sm text-background/70">
               Subscribe to receive updates on new arrivals, exclusive offers, and styling inspiration.
             </p>
-            <form className="mt-6 flex gap-2">
-              <Input
-                type="email"
-                placeholder="Enter your email"
-                className="bg-background/10 border-background/20 text-background placeholder:text-background/50 focus-visible:ring-background"
-              />
-              <Button variant="secondary" className="px-6">
-                Subscribe
-              </Button>
+            <form className="mt-6 flex flex-col gap-3" onSubmit={handleNewsletterSubmit}>
+              <div className="flex gap-2">
+                <Input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={newsletterStatus === "loading" || newsletterStatus === "success"}
+                  className="bg-background/10 border-background/20 text-background placeholder:text-background/50 focus-visible:ring-background"
+                />
+                <Button
+                  type="submit"
+                  variant="secondary"
+                  className="px-6"
+                  disabled={newsletterStatus === "loading" || newsletterStatus === "success" || !email}
+                >
+                  {newsletterStatus === "loading" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Subscribe"
+                  )}
+                </Button>
+              </div>
+              {newsletterStatus === "success" && (
+                <p className="text-sm text-green-400 flex items-center gap-1">
+                  <Check className="h-4 w-4" />
+                  {newsletterMessage}
+                </p>
+              )}
+              {newsletterStatus === "error" && (
+                <p className="text-sm text-red-400 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {newsletterMessage}
+                </p>
+              )}
             </form>
           </div>
         </div>

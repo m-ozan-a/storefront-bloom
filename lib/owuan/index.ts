@@ -11,6 +11,7 @@ import {
 } from "./dummy-data";
 import {
   getProducts as apiGetProducts,
+  getProductCount as apiGetProductCount,
   getProduct as apiGetProduct,
   getProductById as apiGetProductById,
   getProductRecommendations as apiGetProductRecommendations,
@@ -19,8 +20,10 @@ import {
   getCollectionProducts as apiGetCollectionProducts,
   getManifest,
   getMenu as apiGetMenu,
+  getNavTree as apiGetNavTree,
   getPage as apiGetPage,
   getPages as apiGetPages,
+  subscribeToNewsletter as apiSubscribeToNewsletter,
   signIn as apiSignIn,
   signUp as apiSignUp,
   getMe as apiGetMe,
@@ -56,6 +59,14 @@ export async function getProducts(options?: {
   query?: string;
   sortKey?: string;
   reverse?: boolean;
+  limit?: number;
+  offset?: number;
+  category?: string[];
+  brand?: string[];
+  minPrice?: number;
+  maxPrice?: number;
+  size?: string[];
+  color?: string[];
 }): Promise<Product[]> {
   try {
     const products = await apiGetProducts(options);
@@ -66,7 +77,30 @@ export async function getProducts(options?: {
 
   // Fallback to dummy data with same filters
   const { filterProducts } = await import("./dummy-data-filter");
-  return filterProducts(dummyProducts, options);
+  let filtered = filterProducts(dummyProducts, options);
+  if (options?.offset) filtered = filtered.slice(options.offset);
+  if (options?.limit) filtered = filtered.slice(0, options.limit);
+  return filtered;
+}
+
+export async function getProductCount(options?: {
+  collection?: string;
+  query?: string;
+  category?: string[];
+  brand?: string[];
+  minPrice?: number;
+  maxPrice?: number;
+  size?: string[];
+  color?: string[];
+}): Promise<number> {
+  try {
+    const count = await apiGetProductCount(options);
+    if (count > 0) return count;
+  } catch (e) {
+    console.warn("API getProductCount failed, using dummy data:", e);
+  }
+  const { filterProducts } = await import("./dummy-data-filter");
+  return filterProducts(dummyProducts, options).length;
 }
 
 export async function getProduct(handle: string): Promise<Product | undefined> {
@@ -147,14 +181,14 @@ export async function getMenu(handle: "header" | "footer"): Promise<Menu[]> {
 
 // ---- Page APIs ----
 
-export async function getPage(handle: string): Promise<Page | undefined> {
+export async function getPage(slug: string): Promise<Page | undefined> {
   try {
-    const page = await apiGetPage(handle);
+    const page = await apiGetPage(slug);
     if (page) return page;
   } catch (e) {
-    console.warn(`API getPage(${handle}) failed, using dummy data:`, e);
+    console.warn(`API getPage(${slug}) failed, using dummy data:`, e);
   }
-  return dummyPages.find((p) => p.handle === handle);
+  return dummyPages.find((p) => p.slug === slug);
 }
 
 export async function getPages(): Promise<Page[]> {
@@ -165,6 +199,20 @@ export async function getPages(): Promise<Page[]> {
     console.warn("API getPages failed, using dummy data:", e);
   }
   return dummyPages;
+}
+
+// ---- Newsletter ----
+
+export { apiSubscribeToNewsletter as subscribeToNewsletter };
+
+export async function getNavTree(handle: "header" | "footer") {
+  try {
+    const tree = await apiGetNavTree(handle);
+    if (tree.length > 0) return tree;
+  } catch (e) {
+    console.warn(`API getNavTree(${handle}) failed:`, e);
+  }
+  return [];
 }
 
 // ---- Auth (re-export from client) ----

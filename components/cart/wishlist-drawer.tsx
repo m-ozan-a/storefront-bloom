@@ -3,11 +3,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { X, Heart, ShoppingBag } from 'lucide-react';
+import { X, Heart, ShoppingBag, Loader2 } from 'lucide-react';
 import { useWishlistStore } from '@/lib/owuan/stores';
 import { useCartStore } from '@/lib/owuan/stores';
-import { products } from '@/lib/owuan/dummy-data';
-import { formatPrice } from '@/lib/owuan';
+import { formatPrice, getProductById } from '@/lib/owuan';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -17,7 +16,7 @@ import {
 } from '@/components/ui/sheet';
 
 export function WishlistDrawer() {
-  const { items, isOpen, closeWishlist, removeItem } = useWishlistStore();
+  const { items, isOpen, closeWishlist, removeItem, fetchWishlist, isLoading } = useWishlistStore();
   const { addItem: addToCart } = useCartStore();
   const [mounted, setMounted] = useState(false);
 
@@ -25,11 +24,13 @@ export function WishlistDrawer() {
     setMounted(true);
   }, []);
 
-  if (!mounted) return null;
+  useEffect(() => {
+    if (mounted) {
+      fetchWishlist();
+    }
+  }, [mounted, fetchWishlist]);
 
-  const wishlistProducts = items
-    .map((item) => products.find((p) => p.id === item.productId))
-    .filter(Boolean);
+  if (!mounted) return null;
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && closeWishlist()}>
@@ -38,10 +39,11 @@ export function WishlistDrawer() {
           <SheetTitle className="flex items-center gap-2 text-lg font-semibold">
             <Heart className="h-5 w-5" />
             Wishlist ({items.length})
+            {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           </SheetTitle>
         </SheetHeader>
 
-        {wishlistProducts.length === 0 ? (
+        {items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
             <Heart className="h-16 w-16 text-muted-foreground/50" />
             <div>
@@ -59,10 +61,11 @@ export function WishlistDrawer() {
         ) : (
           <div className="flex-1 overflow-y-auto py-4">
             <ul className="space-y-4">
-              {wishlistProducts.map((product) => {
+              {items.map((item) => {
+                const product = item.product;
                 if (!product) return null;
                 return (
-                  <li key={product.id} className="flex gap-4">
+                  <li key={item.id} className="flex gap-4">
                     <Link
                       href={`/product/${product.handle}`}
                       onClick={closeWishlist}
@@ -92,13 +95,18 @@ export function WishlistDrawer() {
                           >
                             {product.title}
                           </Link>
-                          <p className="mt-0.5 text-xs text-muted-foreground">
-                            {product.brand}
-                          </p>
+                          {product.brand && (
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              {product.brand}
+                            </p>
+                          )}
                         </div>
                         <button
-                          onClick={() => removeItem(product.id)}
-                          className="text-muted-foreground transition-colors hover:text-foreground"
+                          onClick={async () => {
+                            await removeItem(product.id);
+                          }}
+                          disabled={isLoading}
+                          className="text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
                           aria-label="Remove from wishlist"
                         >
                           <X className="h-4 w-4" />
@@ -111,9 +119,12 @@ export function WishlistDrawer() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
-                            addToCart(product, product.variants[0].id);
-                            removeItem(product.id);
+                          onClick={async () => {
+                            const fullProduct = await getProductById(product.id);
+                            if (fullProduct) {
+                              await addToCart(fullProduct, fullProduct.variants[0].id);
+                              await removeItem(product.id);
+                            }
                           }}
                         >
                           Add to Cart

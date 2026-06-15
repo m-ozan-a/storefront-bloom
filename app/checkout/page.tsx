@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { useEffect, useState } from 'react';
 
 export default function CheckoutPage() {
-  const { cart, removeItem, updateQuantity, clearCart } = useCartStore();
+  const { cart, removeItem, updateQuantity, clearCart, fetchCart, isLoading: cartLoading } = useCartStore();
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,6 +42,12 @@ export default function CheckoutPage() {
     setMounted(true);
     if (user) setCheckoutMode('member');
   }, [user]);
+
+  useEffect(() => {
+    if (mounted) {
+      fetchCart();
+    }
+  }, [mounted, fetchCart]);
 
   useEffect(() => {
     getManifest().then((m) => {
@@ -243,7 +249,8 @@ export default function CheckoutPage() {
                     <div className="flex items-center border border-border">
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="flex h-9 w-9 items-center justify-center text-foreground transition-colors hover:bg-secondary"
+                        disabled={cartLoading}
+                        className="flex h-9 w-9 items-center justify-center text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
                         aria-label="Azalt"
                       >
                         <Minus className="h-4 w-4" />
@@ -253,7 +260,8 @@ export default function CheckoutPage() {
                       </span>
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="flex h-9 w-9 items-center justify-center text-foreground transition-colors hover:bg-secondary"
+                        disabled={cartLoading}
+                        className="flex h-9 w-9 items-center justify-center text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
                         aria-label="Arttır"
                       >
                         <Plus className="h-4 w-4" />
@@ -261,7 +269,8 @@ export default function CheckoutPage() {
                     </div>
                     <button
                       onClick={() => removeItem(item.id)}
-                      className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      disabled={cartLoading}
+                      className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
                     >
                       <Trash2 className="h-4 w-4" />
                       Kaldır

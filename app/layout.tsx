@@ -1,13 +1,28 @@
 import type { Metadata, Viewport } from 'next';
+import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
 import Script from 'next/script';
+import { headers } from 'next/headers';
 import { Inter, Playfair_Display } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { Header, Footer } from '@/components/layout';
-import { CartDrawer, WishlistDrawer } from '@/components/cart';
+import { IframeNavigator } from '@/components/layout/iframe-navigator';
 import { AuthProvider } from '@/components/auth';
+import { OrganizationLd, WebSiteLd } from '@/components/seo/json-ld';
 import { getManifest } from '@/lib/owuan';
-import type { Manifest } from '@/lib/owuan/types';
+import { generateThemeCSS } from '@/lib/theme-css';
+import type { Manifest, ManifestTheme } from '@/lib/owuan/types';
 import './globals.css';
+
+const CartDrawer = dynamic(
+  () => import('@/components/cart').then((mod) => ({ default: mod.CartDrawer })),
+  { ssr: false }
+);
+
+const WishlistDrawer = dynamic(
+  () => import('@/components/cart').then((mod) => ({ default: mod.WishlistDrawer })),
+  { ssr: false }
+);
 
 const inter = Inter({
   subsets: ['latin'],
@@ -19,48 +34,93 @@ const playfair = Playfair_Display({
   variable: '--font-playfair',
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: 'Owuan | Modern Women\'s Fashion',
-    template: '%s | Owuan',
-  },
-  description: 'Discover timeless elegance with Owuan. Shop our curated collection of modern women\'s fashion including dresses, tops, pants, and accessories.',
-  keywords: ['women\'s fashion', 'clothing', 'dresses', 'tops', 'elegant fashion', 'modern style'],
-  authors: [{ name: 'Owuan' }],
-  creator: 'Owuan',
-  openGraph: {
-    type: 'website',
-    locale: 'en_US',
-    siteName: 'Owuan',
-    title: 'Owuan | Modern Women\'s Fashion',
-    description: 'Discover timeless elegance with Owuan.',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Owuan | Modern Women\'s Fashion',
-    description: 'Discover timeless elegance with Owuan.',
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-};
-
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#faf9f7' },
-    { media: '(prefers-color-scheme: dark)', color: '#1f1d1b' },
-  ],
-};
-
-async function getManifestStore(): Promise<Manifest['store'] | null> {
+async function getDomainHeader(): Promise<Record<string, string>> {
   try {
-    const manifest = await getManifest();
-    return manifest.store ?? null;
+    const h = await headers();
+    const host = h.get("host") || "";
+    const domain = host.split(":")[0];
+    return { "X-Store-Domain": domain };
   } catch {
-    return null;
+    return {};
+  }
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const manifest = await getManifest(await getDomainHeader());
+    const store = manifest.store;
+    const siteName = store.name || 'Owuan';
+    return {
+      title: {
+        default: store.metaTitle || `${siteName} | Modern Fashion`,
+        template: `%s | ${siteName}`,
+      },
+      description: store.metaDescription || store.description || 'Discover timeless elegance with Owuan.',
+      keywords: ['fashion', 'clothing', 'dresses', 'tops', 'elegant fashion', 'modern style'],
+      authors: [{ name: siteName }],
+      creator: siteName,
+      openGraph: {
+        type: 'website',
+        locale: 'en_US',
+        siteName,
+        title: store.metaTitle || `${siteName} | Modern Fashion`,
+        description: store.metaDescription || store.description || '',
+        images: store.ogImage ? [{ url: store.ogImage }] : undefined,
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: store.metaTitle || `${siteName} | Modern Fashion`,
+        description: store.metaDescription || store.description || '',
+      },
+      robots: { index: true, follow: true },
+      icons: store.favicon ? { icon: store.favicon } : undefined,
+    };
+  } catch {
+    return {
+      title: { default: 'Owuan | Modern Fashion', template: '%s | Owuan' },
+      description: 'Discover timeless elegance with Owuan.',
+    };
+  }
+}
+
+export async function generateViewport(): Promise<Viewport> {
+  try {
+    const manifest = await getManifest(await getDomainHeader());
+    const primaryColor = manifest.activeTheme?.colors?.light?.primary;
+    const bgColor = manifest.activeTheme?.colors?.light?.background;
+    return {
+      width: 'device-width',
+      initialScale: 1,
+      themeColor: [
+        { media: '(prefers-color-scheme: light)', color: bgColor || '#faf9f7' },
+        ...(primaryColor ? [{ media: '(prefers-color-scheme: dark)' as const, color: primaryColor }] : []),
+      ],
+    };
+  } catch {
+    return {
+      width: 'device-width',
+      initialScale: 1,
+      themeColor: [
+        { media: '(prefers-color-scheme: light)', color: '#faf9f7' },
+        { media: '(prefers-color-scheme: dark)', color: '#1f1d1b' },
+      ],
+    };
+  }
+}
+
+async function getStoreData(): Promise<{
+  store: Manifest['store'] | null;
+  activeTheme: ManifestTheme | null;
+}> {
+  try {
+    const h = await headers();
+    const host = h.get("host") || "";
+    const domain = host.split(":")[0];
+    const domainHeaders: Record<string, string> = { "X-Store-Domain": domain };
+    const manifest = await getManifest(domainHeaders);
+    return { store: manifest.store ?? null, activeTheme: manifest.activeTheme ?? null };
+  } catch {
+    return { store: null, activeTheme: null };
   }
 }
 
@@ -69,16 +129,35 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const store = await getManifestStore();
+  const { store, activeTheme } = await getStoreData();
 
   const googleAnalyticsId = store?.googleAnalyticsId;
   const facebookPixelId = store?.facebookPixelId;
   const tiktokPixelId = store?.tiktokPixelId;
+  const otherPixelId = store?.otherPixelId;
+  const themeCSS = generateThemeCSS(activeTheme);
+  const customCSS = activeTheme?.customCss || null;
+  const customHeadHTML = activeTheme?.customHeadHtml || null;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3002";
 
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable} bg-background`}>
       <body className="font-sans antialiased">
+        {customHeadHTML && (
+          <Script id="theme-custom-head" strategy="beforeInteractive">
+            {customHeadHTML}
+          </Script>
+        )}
+        {themeCSS && (
+          <style id="theme-vars" dangerouslySetInnerHTML={{ __html: themeCSS }} />
+        )}
+        {customCSS && (
+          <style id="theme-custom-css" dangerouslySetInnerHTML={{ __html: customCSS }} />
+        )}
         <AuthProvider>
+          <Suspense fallback={null}>
+            <IframeNavigator />
+          </Suspense>
           <Header />
           {children}
           <Footer />
@@ -141,6 +220,25 @@ export default async function RootLayout({
               }(window, document, 'ttq');
             `}
           </Script>
+        )}
+
+        {/* Custom Third-Party Pixel */}
+        {otherPixelId && (
+          <Script id="other-pixel-init" strategy="afterInteractive">
+            {otherPixelId}
+          </Script>
+        )}
+
+        {/* JSON-LD Structured Data */}
+        {store && (
+          <>
+            <OrganizationLd store={store} />
+            <WebSiteLd
+              siteName={store.name}
+              siteUrl={siteUrl}
+              searchUrl={`${siteUrl}/search`}
+            />
+          </>
         )}
 
         {process.env.NODE_ENV === 'production' && <Analytics />}

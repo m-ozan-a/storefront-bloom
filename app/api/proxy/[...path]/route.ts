@@ -51,6 +51,12 @@ async function proxyRequest(req: NextRequest, path: string, method: string) {
     headers["Authorization"] = authHeader;
   }
 
+  // Forward domain for tenant resolution
+  const domain = req.headers.get("x-store-domain");
+  if (domain) {
+    headers["X-Store-Domain"] = domain;
+  }
+
   try {
     const fetchOptions: RequestInit = { method, headers };
 

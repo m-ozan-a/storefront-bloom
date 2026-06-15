@@ -10,6 +10,12 @@ export function filterProducts(
     query?: string;
     sortKey?: string;
     reverse?: boolean;
+    category?: string[];
+    brand?: string[];
+    minPrice?: number;
+    maxPrice?: number;
+    size?: string[];
+    color?: string[];
   }
 ): Product[] {
   let filtered = [...allProducts];
@@ -35,6 +41,42 @@ export function filterProducts(
         p.description.toLowerCase().includes(query) ||
         p.tags.some((t) => t.toLowerCase().includes(query))
     );
+  }
+
+  if (options?.category?.length) {
+    filtered = filtered.filter((p) => options.category!.includes(p.category));
+  }
+
+  if (options?.brand?.length) {
+    filtered = filtered.filter((p) => options.brand!.includes(p.brand));
+  }
+
+  if (options?.minPrice != null) {
+    filtered = filtered.filter(
+      (p) => parseFloat(p.priceRange.minVariantPrice.amount) >= options.minPrice!
+    );
+  }
+
+  if (options?.maxPrice != null) {
+    filtered = filtered.filter(
+      (p) => parseFloat(p.priceRange.minVariantPrice.amount) <= options.maxPrice!
+    );
+  }
+
+  if (options?.size?.length) {
+    filtered = filtered.filter((p) => {
+      const sizeOption = p.options.find((o) => o.name.toLowerCase() === "size");
+      if (!sizeOption) return false;
+      return sizeOption.values.some((v) => options.size!.includes(v));
+    });
+  }
+
+  if (options?.color?.length) {
+    filtered = filtered.filter((p) => {
+      const colorOption = p.options.find((o) => o.name.toLowerCase() === "color");
+      if (!colorOption) return false;
+      return colorOption.values.some((v) => options.color!.includes(v));
+    });
   }
 
   if (options?.sortKey) {

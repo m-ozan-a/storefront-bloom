@@ -4,8 +4,41 @@ import { ArrowRight, Percent, Truck } from 'lucide-react';
 import { getProducts, getManifest } from '@/lib/owuan';
 import { collections } from '@/lib/owuan/dummy-data';
 import { ProductGrid } from '@/components/product';
+import { ProductCarouselSection } from '@/components/product/product-carousel-section';
+import { NewsletterForm } from '@/components/newsletter/newsletter-form';
 import { Button } from '@/components/ui/button';
-import type { ManifestCampaign } from '@/lib/owuan/types';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from '@/components/ui/carousel';
+import type { ManifestCampaign, SectionsData } from '@/lib/owuan/types';
+
+async function DynamicProductCarousels({
+  items,
+}: {
+  items: NonNullable<SectionsData["homepage"]>["productCarousels"];
+}) {
+  if (!items || items.length === 0) return null;
+
+  const carousels = await Promise.all(
+    items.map(async (config) => {
+      const products = await getProducts({
+        collection: config.collection,
+        limit: config.maxItems || 8,
+      });
+      return { ...config, products };
+    })
+  );
+
+  const validCarousels = carousels.filter((c) => c.products.length > 0);
+  if (validCarousels.length === 0) return null;
+
+  return <ProductCarouselSection carousels={validCarousels} />;
+}
+import { Suspense } from 'react';
 
 function getCampaignIcon(type: string) {
   switch (type) {
@@ -55,14 +88,74 @@ export default async function HomePage() {
   const newArrivals = await getProducts({ collection: 'new-arrivals' });
   const bestsellers = await getProducts({ collection: 'bestsellers' });
   let activeCampaigns: ManifestCampaign[] = [];
+  let components: Record<string, boolean> = {};
+  let sections: SectionsData | null = null;
   try {
     const manifest = await getManifest();
     activeCampaigns = manifest.activeCampaigns || [];
+    components = manifest.activeTheme?.components || {};
+    sections = manifest.activeTheme?.sections || null;
   } catch {}
+
+  const show = (key: string) => components[key] !== false;
+  const heroData = sections?.homepage?.hero;
+  const bannerData = sections?.homepage?.banners;
+  const carouselData = sections?.homepage?.carousels;
+  const productCarouselData = sections?.homepage?.productCarousels;
 
   return (
     <main>
       {/* Hero Section */}
+      {show('hero') && heroData ? (
+      <section className="relative h-screen min-h-[600px]">
+        {heroData.videoUrl ? (
+          <div className="absolute inset-0">
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="h-full w-full object-cover"
+              poster={heroData.imageUrl}
+            >
+              <source src={heroData.videoUrl} type="video/mp4" />
+            </video>
+            <div className="absolute inset-0 bg-foreground/30" />
+          </div>
+        ) : (
+          <div className="absolute inset-0">
+            <Image
+              src={heroData.imageUrl || "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1920&h=1080&fit=crop"}
+              alt={heroData.heading}
+              fill
+              priority
+              className="object-cover"
+              sizes="100vw"
+            />
+            <div className="absolute inset-0 bg-foreground/30" />
+          </div>
+        )}
+        <div className="relative container mx-auto flex h-full items-center px-4">
+          <div className="max-w-xl">
+            {heroData.subheading && (
+              <span className="text-sm font-medium uppercase tracking-widest text-background/90">
+                {heroData.subheading}
+              </span>
+            )}
+            <h1 className="mt-4 font-serif text-5xl font-bold leading-tight text-background md:text-6xl lg:text-7xl text-balance">
+              {heroData.heading}
+            </h1>
+            {heroData.ctaText && (
+              <div className="mt-8 flex flex-wrap gap-4">
+                <Button asChild size="lg" className="h-12 px-8">
+                  <Link href={heroData.ctaUrl || "/search"}>{heroData.ctaText}</Link>
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+      ) : show('hero') ? (
       <section className="relative h-screen min-h-[600px]">
         <div className="absolute inset-0">
           <Image
@@ -102,8 +195,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      ) : null}
 
-      {activeCampaigns.length > 0 && (
+      {show('campaigns') && activeCampaigns.length > 0 && (
         <section className="container mx-auto px-4 -mt-8 relative z-10">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {activeCampaigns.slice(0, 3).map((campaign) => (
@@ -114,6 +208,7 @@ export default async function HomePage() {
       )}
 
       {/* Categories Grid */}
+      {show('categories') && (
       <section className="container mx-auto px-4 py-20">
         <div className="text-center">
           <h2 className="font-serif text-3xl font-bold text-foreground md:text-4xl">
@@ -160,8 +255,10 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
+      )}
 
       {/* New Arrivals */}
+      {show('newArrivals') && (
       <section className="bg-secondary py-20">
         <div className="container mx-auto px-4">
           <div className="flex items-end justify-between">
@@ -190,6 +287,87 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      )}
+
+      {/* Dynamic Banners */}
+      {bannerData && bannerData.length > 0 && (
+        <section className="container mx-auto px-4 py-16">
+          <div
+            className="grid gap-4"
+            style={{ gridTemplateColumns: `repeat(${Math.min(bannerData.length, 3)}, 1fr)` }}
+          >
+            {bannerData.map((banner, i) => (
+              <Link
+                key={i}
+                href={banner.linkUrl}
+                className="group relative overflow-hidden rounded-lg aspect-[3/2]"
+              >
+                <Image
+                  src={banner.imageUrl}
+                  alt={banner.title}
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  sizes="(min-width: 1024px) 33vw, 100vw"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-6">
+                  <h3 className="text-lg font-bold text-background">{banner.title}</h3>
+                  {banner.description && (
+                    <p className="text-sm text-background/80 mt-1">{banner.description}</p>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Dynamic Carousels */}
+      {carouselData && carouselData.length > 0 && carouselData.map((carousel, ci) => (
+        <section key={ci} className="container mx-auto px-4 py-16">
+          {carousel.title && (
+            <h2 className="font-serif text-3xl font-bold text-foreground text-center mb-8">
+              {carousel.title}
+            </h2>
+          )}
+          <Carousel className="w-full max-w-5xl mx-auto">
+            <CarouselContent>
+              {carousel.images.map((img, ii) => (
+                <CarouselItem key={ii}>
+                  {img.linkUrl ? (
+                    <Link href={img.linkUrl} className="block relative aspect-[16/9] overflow-hidden rounded-lg">
+                      <Image
+                        src={img.url}
+                        alt={img.alt || `Slide ${ii + 1}`}
+                        fill
+                        className="object-cover"
+                        sizes="(min-width: 1024px) 80vw, 100vw"
+                      />
+                    </Link>
+                  ) : (
+                    <div className="relative aspect-[16/9] overflow-hidden rounded-lg">
+                      <Image
+                        src={img.url}
+                        alt={img.alt || `Slide ${ii + 1}`}
+                        fill
+                        className="object-cover"
+                        sizes="(min-width: 1024px) 80vw, 100vw"
+                      />
+                    </div>
+                  )}
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="hidden sm:flex" />
+            <CarouselNext className="hidden sm:flex" />
+          </Carousel>
+        </section>
+      ))}
+
+      {/* Dynamic Product Carousels */}
+      {productCarouselData && productCarouselData.length > 0 && (
+        <DynamicProductCarousels items={productCarouselData} />
+      )}
 
       {/* Feature Banner */}
       <section className="container mx-auto px-4 py-20">
@@ -258,6 +436,7 @@ export default async function HomePage() {
       </section>
 
       {/* Bestsellers */}
+      {show('bestsellers') && (
       <section className="container mx-auto px-4 py-20">
         <div className="flex items-end justify-between">
           <div>
@@ -284,8 +463,10 @@ export default async function HomePage() {
           </Button>
         </div>
       </section>
+      )}
 
       {/* Instagram / Social Banner */}
+      {show('social') && (
       <section className="bg-foreground py-16">
         <div className="container mx-auto px-4 text-center">
           <h2 className="font-serif text-2xl font-bold text-background md:text-3xl">
@@ -321,8 +502,10 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
       {/* Trust Badges */}
+      {show('trustBadges') && (
       <section className="border-t border-border py-12">
         <div className="container mx-auto px-4">
           <div className="grid gap-8 text-center md:grid-cols-4">
@@ -405,6 +588,26 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      )}
+
+      {/* Newsletter */}
+      {show('newsletter') && (
+      <section className="border-t border-border py-20">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-xl text-center">
+            <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">
+              Join the Owuan World
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              Subscribe to receive updates on new arrivals, exclusive offers, and styling inspiration.
+            </p>
+            <div className="mt-8">
+              <NewsletterForm />
+            </div>
+          </div>
+        </div>
+      </section>
+      )}
     </main>
   );
 }

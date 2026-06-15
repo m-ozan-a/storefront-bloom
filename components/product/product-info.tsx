@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Heart, Minus, Plus, Share2, Truck, RotateCcw, Shield } from 'lucide-react';
+import { Heart, Minus, Plus, Share2, Truck, RotateCcw, Shield, Loader2, AlertCircle } from 'lucide-react';
 import type { Product } from '@/lib/owuan/types';
 import { formatPrice } from '@/lib/owuan';
 import { useCartStore, useWishlistStore } from '@/lib/owuan/stores';
@@ -22,7 +22,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
   });
   const [quantity, setQuantity] = useState(1);
 
-  const { addItem } = useCartStore();
+  const { addItem, isLoading, error, clearError } = useCartStore();
   const { isInWishlist, addItem: addToWishlist, removeItem: removeFromWishlist } = useWishlistStore();
   const isWishlisted = isInWishlist(product.id);
 
@@ -37,17 +37,17 @@ export function ProductInfo({ product }: ProductInfoProps) {
     ? parseFloat(selectedVariant.compareAtPrice.amount)
     : null;
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (selectedVariant) {
-      addItem(product, selectedVariant.id, quantity);
+      await addItem(product, selectedVariant.id, quantity);
     }
   };
 
-  const handleWishlistToggle = () => {
+  const handleWishlistToggle = async () => {
     if (isWishlisted) {
-      removeFromWishlist(product.id);
+      await removeFromWishlist(product.id);
     } else {
-      addToWishlist(product.id);
+      await addToWishlist(product.id);
     }
   };
 
@@ -168,14 +168,33 @@ export function ProductInfo({ product }: ProductInfoProps) {
         </div>
       </div>
 
+      {/* Error message */}
+      {error && (
+        <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+          <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+          <p className="flex-1">{error}</p>
+          <button onClick={clearError} className="flex-shrink-0 hover:opacity-70">
+            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="flex gap-3">
         <Button
           onClick={handleAddToCart}
           className="flex-1 h-12 text-base"
-          disabled={!selectedVariant?.availableForSale}
+          disabled={!selectedVariant?.availableForSale || isLoading}
         >
-          {selectedVariant?.availableForSale ? 'Add to Cart' : 'Out of Stock'}
+          {isLoading ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : selectedVariant?.availableForSale ? (
+            'Add to Cart'
+          ) : (
+            'Out of Stock'
+          )}
         </Button>
         <Button
           variant="outline"

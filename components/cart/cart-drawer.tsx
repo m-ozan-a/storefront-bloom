@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { X, Minus, Plus, ShoppingBag } from 'lucide-react';
+import { X, Minus, Plus, ShoppingBag, Loader2, AlertCircle } from 'lucide-react';
 import { useCartStore } from '@/lib/owuan/stores';
 import { formatPrice } from '@/lib/owuan';
 import { Button } from '@/components/ui/button';
@@ -15,12 +15,18 @@ import {
 } from '@/components/ui/sheet';
 
 export function CartDrawer() {
-  const { cart, isOpen, closeCart, removeItem, updateQuantity } = useCartStore();
+  const { cart, isOpen, closeCart, removeItem, updateQuantity, isLoading, error, clearError, fetchCart } = useCartStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      fetchCart();
+    }
+  }, [mounted, fetchCart]);
 
   if (!mounted) return null;
 
@@ -31,8 +37,19 @@ export function CartDrawer() {
           <SheetTitle className="flex items-center gap-2 text-lg font-semibold">
             <ShoppingBag className="h-5 w-5" />
             Shopping Cart ({cart.totalQuantity})
+            {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           </SheetTitle>
         </SheetHeader>
+
+        {error && (
+          <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+            <p className="flex-1">{error}</p>
+            <button onClick={clearError} className="flex-shrink-0 hover:opacity-70">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
 
         {cart.lines.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
@@ -60,7 +77,7 @@ export function CartDrawer() {
                       onClick={closeCart}
                       className="relative h-24 w-20 flex-shrink-0 overflow-hidden bg-secondary"
                     >
-                      {item.merchandise.product.featuredImage ? (
+                      {item.merchandise.product.featuredImage?.url ? (
                         <Image
                           src={item.merchandise.product.featuredImage.url}
                           alt={item.merchandise.product.title}
@@ -92,7 +109,8 @@ export function CartDrawer() {
                         </div>
                         <button
                           onClick={() => removeItem(item.id)}
-                          className="text-muted-foreground transition-colors hover:text-foreground"
+                          disabled={isLoading}
+                          className="text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
                           aria-label="Remove item"
                         >
                           <X className="h-4 w-4" />
@@ -104,7 +122,8 @@ export function CartDrawer() {
                             onClick={() =>
                               updateQuantity(item.id, item.quantity - 1)
                             }
-                            className="flex h-8 w-8 items-center justify-center text-foreground transition-colors hover:bg-secondary"
+                            disabled={isLoading}
+                            className="flex h-8 w-8 items-center justify-center text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
                             aria-label="Decrease quantity"
                           >
                             <Minus className="h-3 w-3" />
@@ -116,7 +135,8 @@ export function CartDrawer() {
                             onClick={() =>
                               updateQuantity(item.id, item.quantity + 1)
                             }
-                            className="flex h-8 w-8 items-center justify-center text-foreground transition-colors hover:bg-secondary"
+                            disabled={isLoading}
+                            className="flex h-8 w-8 items-center justify-center text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
                             aria-label="Increase quantity"
                           >
                             <Plus className="h-3 w-3" />
@@ -156,7 +176,7 @@ export function CartDrawer() {
               <p className="mt-2 text-xs text-muted-foreground">
                 Shipping calculated at checkout
               </p>
-              <Button className="mt-4 w-full h-12" asChild>
+              <Button className="mt-4 w-full h-12" asChild disabled={isLoading}>
                 <Link href="/checkout" onClick={closeCart}>
                   Proceed to Checkout
                 </Link>

@@ -3,29 +3,71 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { User, Package, Heart, MapPin, Settings, LogOut } from 'lucide-react';
+import { User, Package, Heart, MapPin, Settings, LogOut, ShoppingBag, ChevronRight, UserCircle } from 'lucide-react';
 import { useAuth } from '@/components/auth';
-import { useWishlistStore } from '@/lib/owuan/stores';
-import { products } from '@/lib/owuan/dummy-data';
+import { getOrders, getAddresses, getFavorites, type OrderListItem } from '@/lib/owuan/client';
+import { getProductById } from '@/lib/owuan';
+import type { Product } from '@/lib/owuan/types';
+import { formatPrice } from '@/lib/owuan';
 import { ProductCard } from '@/components/product';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+
+const statusLabel: Record<string, string> = {
+  processing: 'Processing',
+  cancelled: 'Cancelled',
+  returned: 'Returned',
+  partially_returned: 'Partially Returned',
+  waiting_return: 'Return Pending',
+};
+
+const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  processing: 'default',
+  cancelled: 'destructive',
+  returned: 'secondary',
+  partially_returned: 'secondary',
+  waiting_return: 'outline',
+};
 
 export default function AccountPage() {
   const { user, isLoading, signOut } = useAuth();
   const router = useRouter();
-  const { items: wishlistItems } = useWishlistStore();
   const [mounted, setMounted] = useState(false);
+  const [orderCount, setOrderCount] = useState(0);
+  const [addressCount, setAddressCount] = useState(0);
+  const [favoriteCount, setFavoriteCount] = useState(0);
+  const [recentOrders, setRecentOrders] = useState<OrderListItem[]>([]);
+  const [wishlistProducts, setWishlistProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (mounted && !isLoading && !user) {
       router.push('/account/login');
     }
   }, [mounted, isLoading, user, router]);
+
+  useEffect(() => {
+    if (mounted && user) {
+      Promise.all([
+        getOrders().then((orders) => {
+          setOrderCount(orders.length);
+          setRecentOrders(orders.slice(0, 5));
+        }),
+        getAddresses().then((list) => setAddressCount(list.length)),
+        getFavorites().then((list) => {
+          setFavoriteCount(list.length);
+          const ids = list.slice(0, 4).map((f) => f.product?.id).filter(Boolean) as string[];
+          if (ids.length > 0) {
+            Promise.all(ids.map((id) => getProductById(id).catch(() => undefined)))
+              .then((products) => setWishlistProducts(products.filter((p): p is Product => p != null)));
+          }
+        }),
+      ]).catch(() => {});
+    }
+  }, [mounted, user]);
 
   if (!mounted || isLoading) {
     return (
@@ -41,12 +83,7 @@ export default function AccountPage() {
     return null;
   }
 
-  const wishlistProducts = wishlistItems
-    .map((item) => products.find((p) => p.id === item.productId))
-    .filter(Boolean)
-    .slice(0, 4);
-
-  const handleSignOut = async () => {
+          const handleSignOut = async () => {
     await signOut();
     router.push('/');
   };
@@ -83,6 +120,13 @@ export default function AccountPage() {
                 Orders
               </Link>
               <Link
+                href="/account/profile"
+                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
+              >
+                <UserCircle className="h-4 w-4" />
+                Profile
+              </Link>
+              <Link
                 href="/account/wishlist"
                 className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
               >
@@ -95,13 +139,6 @@ export default function AccountPage() {
               >
                 <MapPin className="h-4 w-4" />
                 Addresses
-              </Link>
-              <Link
-                href="/account/settings"
-                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
-              >
-                <Settings className="h-4 w-4" />
-                Settings
               </Link>
               <button
                 onClick={handleSignOut}
@@ -128,39 +165,89 @@ export default function AccountPage() {
 
           {/* Quick Stats */}
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="rounded-lg border border-border p-4">
+            <Link href="/account/orders" className="rounded-lg border border-border p-4 transition-colors hover:bg-secondary/50">
               <Package className="h-5 w-5 text-muted-foreground" />
-              <p className="mt-2 text-2xl font-bold text-foreground">0</p>
+              <p className="mt-2 text-2xl font-bold text-foreground">{orderCount}</p>
               <p className="text-sm text-muted-foreground">Orders</p>
-            </div>
-            <div className="rounded-lg border border-border p-4">
+            </Link>
+            <Link href="/account/wishlist" className="rounded-lg border border-border p-4 transition-colors hover:bg-secondary/50">
               <Heart className="h-5 w-5 text-muted-foreground" />
               <p className="mt-2 text-2xl font-bold text-foreground">
-                {wishlistItems.length}
+                {favoriteCount}
               </p>
               <p className="text-sm text-muted-foreground">Wishlist Items</p>
-            </div>
-            <div className="rounded-lg border border-border p-4">
+            </Link>
+            <Link href="/account/addresses" className="rounded-lg border border-border p-4 transition-colors hover:bg-secondary/50">
               <MapPin className="h-5 w-5 text-muted-foreground" />
-              <p className="mt-2 text-2xl font-bold text-foreground">0</p>
+              <p className="mt-2 text-2xl font-bold text-foreground">{addressCount}</p>
               <p className="text-sm text-muted-foreground">Saved Addresses</p>
-            </div>
+            </Link>
           </div>
 
           {/* Recent Orders */}
           <div className="rounded-lg border border-border p-6">
-            <h2 className="text-lg font-semibold text-foreground">
-              Recent Orders
-            </h2>
-            <div className="mt-4 flex flex-col items-center justify-center py-12 text-center">
-              <Package className="h-12 w-12 text-muted-foreground/50" />
-              <p className="mt-4 text-muted-foreground">
-                You haven&apos;t placed any orders yet.
-              </p>
-              <Button asChild className="mt-4">
-                <Link href="/search">Start Shopping</Link>
-              </Button>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-foreground">
+                Recent Orders
+              </h2>
+              {orderCount > 0 && (
+                <Link
+                  href="/account/orders"
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  View All
+                </Link>
+              )}
             </div>
+            {recentOrders.length === 0 ? (
+              <div className="mt-4 flex flex-col items-center justify-center py-12 text-center">
+                <Package className="h-12 w-12 text-muted-foreground/50" />
+                <p className="mt-4 text-muted-foreground">
+                  You haven&apos;t placed any orders yet.
+                </p>
+                <Button asChild className="mt-4">
+                  <Link href="/search">Start Shopping</Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="mt-4 space-y-3">
+                {recentOrders.map((order) => (
+                  <Link
+                    key={order.uid}
+                    href={`/account/orders/${order.uid}`}
+                    className="flex items-center justify-between rounded-lg border border-border p-4 transition-colors hover:bg-secondary/50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
+                        <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">
+                          #{order.orderId}
+                        </p>
+                        <div className="mt-0.5 flex items-center gap-2">
+                          <Badge variant={statusVariant[order.status] || 'default'} className="text-xs">
+                            {statusLabel[order.status] || order.status}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(order.createdAt).toLocaleDateString('tr-TR', {
+                              day: 'numeric',
+                              month: 'long',
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-semibold text-foreground">
+                        {formatPrice(order.total.toFixed(2))}
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Wishlist Preview */}

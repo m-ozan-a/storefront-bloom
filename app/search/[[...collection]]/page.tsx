@@ -1,12 +1,45 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { getProducts, getCollection, sorting } from '@/lib/owuan';
+import { getProducts, getProductCount, getCollection, sorting, getManifest } from '@/lib/owuan';
 import { ProductGrid } from '@/components/product';
-import { FilterSortBar, CollectionSidebar } from '@/components/search';
+import { FilterSortBar, ProductPagination, PAGE_SIZE, CollectionSidebar, type FilterOptions } from '@/components/search';
 
 interface SearchPageProps {
   params: Promise<{ collection?: string[] }>;
-  searchParams: Promise<{ q?: string; sort?: string }>;
+  searchParams: Promise<{
+    q?: string; sort?: string; page?: string;
+    category?: string; brand?: string;
+    minPrice?: string; maxPrice?: string;
+    size?: string; color?: string;
+  }>;
+}
+
+async function getFilterOptions(): Promise<FilterOptions> {
+  try {
+    const manifest = await getManifest();
+    const categories = manifest.categories
+      .filter((c) => c.isActive)
+      .map((c) => ({ label: c.title, value: c.slug }));
+    const brands = manifest.brands
+      .filter((b) => b.isActive)
+      .map((b) => ({ label: b.title, value: b.slug }));
+
+    return {
+      categories,
+      brands,
+      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+      colors: ["Black", "White", "Navy", "Burgundy", "Beige", "Green", "Blue", "Red", "Pink"],
+      priceRange: { min: 0, max: 500 },
+    };
+  } catch {
+    return {
+      categories: [],
+      brands: [],
+      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+      colors: ["Black", "White", "Navy", "Burgundy", "Beige", "Green", "Blue", "Red", "Pink"],
+      priceRange: { min: 0, max: 500 },
+    };
+  }
 }
 
 export async function generateMetadata({
@@ -44,44 +77,89 @@ async function ProductResults({
   collection,
   query,
   sort,
+  category,
+  brand,
+  minPrice,
+  maxPrice,
+  size,
+  color,
+  page,
 }: {
   collection?: string;
   query?: string;
   sort?: string;
+  category?: string[];
+  brand?: string[];
+  minPrice?: number;
+  maxPrice?: number;
+  size?: string[];
+  color?: string[];
+  page: number;
 }) {
   const sortOption = sorting.find((s) => s.slug === sort);
+  const offset = (page - 1) * PAGE_SIZE;
 
-  const products = await getProducts({
-    collection,
-    query,
-    sortKey: sortOption?.sortKey,
-    reverse: sortOption?.reverse,
-  });
+  const [products, total] = await Promise.all([
+    getProducts({
+      collection,
+      query,
+      sortKey: sortOption?.sortKey,
+      reverse: sortOption?.reverse,
+      category,
+      brand,
+      minPrice,
+      maxPrice,
+      size,
+      color,
+      limit: PAGE_SIZE,
+      offset,
+    }),
+    getProductCount({
+      collection,
+      query,
+      category,
+      brand,
+      minPrice,
+      maxPrice,
+      size,
+      color,
+    }),
+  ]);
 
   return (
-    <div className="flex-1">
-      <FilterSortBar productCount={products.length} />
-      <div className="mt-6">
-        <ProductGrid products={products} columns={3} />
-      </div>
-    </div>
+    <>
+      <p className="mb-4 text-sm text-muted-foreground">
+        {total} {total === 1 ? 'product' : 'products'}
+      </p>
+      <ProductGrid products={products} columns={3} />
+      <ProductPagination total={total} />
+    </>
   );
 }
 
 export default async function SearchPage({ params, searchParams }: SearchPageProps) {
   const { collection } = await params;
-  const { q, sort } = await searchParams;
+  const { q, sort, page, category, brand, minPrice, maxPrice, size, color } = await searchParams;
   const collectionHandle = collection?.[0];
+  const currentPage = Math.max(1, Number(page || 1));
 
-  const collectionData = collectionHandle
-    ? await getCollection(collectionHandle)
-    : null;
+  const [collectionData, filterOptions] = await Promise.all([
+    collectionHandle ? getCollection(collectionHandle) : null,
+    getFilterOptions(),
+  ]);
 
   const pageTitle = q
     ? `Search: "${q}"`
     : collectionData?.title || 'All Products';
 
   const pageDescription = collectionData?.description;
+
+  const categoryArr = category?.split(",").filter(Boolean);
+  const brandArr = brand?.split(",").filter(Boolean);
+  const sizeArr = size?.split(",").filter(Boolean);
+  const colorArr = color?.split(",").filter(Boolean);
+  const minPriceNum = minPrice ? Number(minPrice) : undefined;
+  const maxPriceNum = maxPrice ? Number(maxPrice) : undefined;
 
   return (
     <main className="container mx-auto px-4 pt-32 pb-16">
@@ -98,24 +176,37 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
       <div className="flex gap-12">
         <CollectionSidebar currentCollection={collectionHandle} />
 
-        <Suspense
-          fallback={
-            <div className="flex-1">
-              <div className="h-10 w-full animate-pulse bg-secondary" />
-              <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="aspect-[3/4] animate-pulse bg-secondary" />
-                ))}
-              </div>
-            </div>
-          }
-        >
-          <ProductResults
-            collection={collectionHandle}
-            query={q}
-            sort={sort}
-          />
-        </Suspense>
+        <div className="flex-1">
+          <FilterSortBar filterOptions={filterOptions} />
+
+          <div className="mt-6">
+            <Suspense
+              fallback={
+                <div>
+                  <div className="mb-4 h-5 w-24 animate-pulse rounded bg-secondary" />
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+                    {[...Array(6)].map((_, i) => (
+                      <div key={i} className="aspect-[3/4] animate-pulse rounded bg-secondary" />
+                    ))}
+                  </div>
+                </div>
+              }
+            >
+              <ProductResults
+                brand={brandArr}
+                category={categoryArr}
+                collection={collectionHandle}
+                color={colorArr}
+                maxPrice={maxPriceNum}
+                minPrice={minPriceNum}
+                page={currentPage}
+                query={q}
+                size={sizeArr}
+                sort={sort}
+              />
+            </Suspense>
+          </div>
+        </div>
       </div>
     </main>
   );
