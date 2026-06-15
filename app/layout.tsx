@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next';
-import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import Script from 'next/script';
 import { headers } from 'next/headers';
@@ -7,22 +6,13 @@ import { Inter, Playfair_Display } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { Header, Footer } from '@/components/layout';
 import { IframeNavigator } from '@/components/layout/iframe-navigator';
+import { ClientDrawers } from '@/components/layout/client-drawers';
 import { AuthProvider } from '@/components/auth';
 import { OrganizationLd, WebSiteLd } from '@/components/seo/json-ld';
 import { getManifest } from '@/lib/owuan';
 import { generateThemeCSS } from '@/lib/theme-css';
 import type { Manifest, ManifestTheme } from '@/lib/owuan/types';
 import './globals.css';
-
-const CartDrawer = dynamic(
-  () => import('@/components/cart').then((mod) => ({ default: mod.CartDrawer })),
-  { ssr: false }
-);
-
-const WishlistDrawer = dynamic(
-  () => import('@/components/cart').then((mod) => ({ default: mod.WishlistDrawer })),
-  { ssr: false }
-);
 
 const inter = Inter({
   subsets: ['latin'],
@@ -161,8 +151,7 @@ export default async function RootLayout({
           <Header />
           {children}
           <Footer />
-          <CartDrawer />
-          <WishlistDrawer />
+          <ClientDrawers />
         </AuthProvider>
 
         {/* Google Analytics (gtag.js) */}
