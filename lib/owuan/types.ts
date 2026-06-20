@@ -194,6 +194,13 @@ export interface ManifestStore {
   kepNumber: string | null;
   defaultPaymentGateway: string | null;
   defaultCarrierGateway: string | null;
+  allowGuestCheckout: boolean;
+  ga4PropertyId: string | null;
+  socialInstagram: string | null;
+  socialFacebook: string | null;
+  socialTiktok: string | null;
+  socialYoutube: string | null;
+  socialLinkedin: string | null;
 }
 
 export interface ManifestCampaign {
@@ -244,6 +251,10 @@ export interface ManifestTheme {
   sections: SectionsData | null;
   customCss: string | null;
   customHeadHtml: string | null;
+  darkColors: Record<string, string> | null;
+  productPageStyle: string | null;
+  listingPageStyle: string | null;
+  spec: unknown | null;
 }
 
 export interface NavItem {
@@ -260,6 +271,10 @@ export interface SectionsData {
     header?: NavItem[];
     footer?: NavItem[];
   };
+  announcement?: {
+    text?: string;
+    enabled?: boolean;
+  };
   homepage?: {
     hero?: {
       heading: string;
@@ -268,6 +283,7 @@ export interface SectionsData {
       ctaUrl?: string;
       imageUrl?: string;
       videoUrl?: string;
+      variant?: string;
     };
     banners?: {
       title: string;
@@ -275,10 +291,12 @@ export interface SectionsData {
       imageUrl: string;
       linkUrl: string;
       position?: number;
+      variant?: string;
     }[];
     carousels?: {
       title?: string;
       images: { url: string; alt?: string; linkUrl?: string }[];
+      variant?: string;
     }[];
     productCarousels?: {
       title: string;

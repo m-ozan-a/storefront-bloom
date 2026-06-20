@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { getProducts, getProductCount, getCollection, sorting, getManifest } from '@/lib/owuan';
 import { ProductGrid } from '@/components/product';
+import { ProductCard } from '@/components/product/product-card';
 import { FilterSortBar, ProductPagination, PAGE_SIZE, CollectionSidebar, type FilterOptions } from '@/components/search';
 
 interface SearchPageProps {
@@ -84,6 +85,7 @@ async function ProductResults({
   size,
   color,
   page,
+  listingStyle,
 }: {
   collection?: string;
   query?: string;
@@ -95,6 +97,7 @@ async function ProductResults({
   size?: string[];
   color?: string[];
   page: number;
+  listingStyle: string;
 }) {
   const sortOption = sorting.find((s) => s.slug === sort);
   const offset = (page - 1) * PAGE_SIZE;
@@ -131,7 +134,17 @@ async function ProductResults({
       <p className="mb-4 text-sm text-muted-foreground">
         {total} {total === 1 ? 'product' : 'products'}
       </p>
-      <ProductGrid products={products} columns={3} />
+      {listingStyle === "masonry" ? (
+        <div className="columns-1 gap-4 md:columns-2 lg:columns-3">
+          {products.map((product) => (
+            <div key={product.id} className="mb-4 break-inside-avoid">
+              <ProductCard product={product} cardStyle="minimal" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <ProductGrid products={products} columns={listingStyle === "list" ? 1 : 3} />
+      )}
       <ProductPagination total={total} />
     </>
   );
@@ -143,10 +156,13 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
   const collectionHandle = collection?.[0];
   const currentPage = Math.max(1, Number(page || 1));
 
-  const [collectionData, filterOptions] = await Promise.all([
+  const [collectionData, filterOptions, manifest] = await Promise.all([
     collectionHandle ? getCollection(collectionHandle) : null,
     getFilterOptions(),
+    getManifest().catch(() => null),
   ]);
+
+  const listingStyle = manifest?.activeTheme?.listingPageStyle || "grid";
 
   const pageTitle = q
     ? `Search: "${q}"`
@@ -173,20 +189,18 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
         )}
       </div>
 
-      <div className="flex gap-12">
-        <CollectionSidebar currentCollection={collectionHandle} />
-
-        <div className="flex-1">
+      {listingStyle === "list" || listingStyle === "masonry" ? (
+        /* List or Masonry: no sidebar */
+        <div>
           <FilterSortBar filterOptions={filterOptions} />
-
           <div className="mt-6">
             <Suspense
               fallback={
                 <div>
                   <div className="mb-4 h-5 w-24 animate-pulse rounded bg-secondary" />
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+                  <div className={listingStyle === "masonry" ? "columns-1 gap-4 md:columns-2 lg:columns-3" : "space-y-4"}>
                     {[...Array(6)].map((_, i) => (
-                      <div key={i} className="aspect-[3/4] animate-pulse rounded bg-secondary" />
+                      <div key={i} className={listingStyle === "masonry" ? "mb-4 aspect-[3/4] animate-pulse rounded bg-secondary" : "h-40 animate-pulse rounded bg-secondary"} />
                     ))}
                   </div>
                 </div>
@@ -203,11 +217,50 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                 query={q}
                 size={sizeArr}
                 sort={sort}
+                listingStyle={listingStyle}
               />
             </Suspense>
           </div>
         </div>
-      </div>
+      ) : (
+        /* Grid (default): sidebar + grid */
+        <div className="flex gap-12">
+          <CollectionSidebar currentCollection={collectionHandle} />
+
+          <div className="flex-1">
+            <FilterSortBar filterOptions={filterOptions} />
+
+            <div className="mt-6">
+              <Suspense
+                fallback={
+                  <div>
+                    <div className="mb-4 h-5 w-24 animate-pulse rounded bg-secondary" />
+                    <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+                      {[...Array(6)].map((_, i) => (
+                        <div key={i} className="aspect-[3/4] animate-pulse rounded bg-secondary" />
+                      ))}
+                    </div>
+                  </div>
+                }
+              >
+                <ProductResults
+                  brand={brandArr}
+                  category={categoryArr}
+                  collection={collectionHandle}
+                  color={colorArr}
+                  maxPrice={maxPriceNum}
+                  minPrice={minPriceNum}
+                  page={currentPage}
+                  query={q}
+                  size={sizeArr}
+                  sort={sort}
+                  listingStyle={listingStyle}
+                />
+              </Suspense>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

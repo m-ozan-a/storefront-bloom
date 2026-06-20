@@ -8,12 +8,11 @@ import { ProductCarouselSection } from '@/components/product/product-carousel-se
 import { NewsletterForm } from '@/components/newsletter/newsletter-form';
 import { Button } from '@/components/ui/button';
 import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselPrevious,
-  CarouselNext,
-} from '@/components/ui/carousel';
+  HeroSectionRenderer,
+  BannerSectionRenderer,
+  CarouselSectionRenderer,
+} from '@/components/sections/SectionRenderer';
+import { SpecSection } from '@/components/sections/SpecSection';
 import type { ManifestCampaign, SectionsData } from '@/lib/owuan/types';
 
 async function DynamicProductCarousels({
@@ -90,11 +89,13 @@ export default async function HomePage() {
   let activeCampaigns: ManifestCampaign[] = [];
   let components: Record<string, boolean> = {};
   let sections: SectionsData | null = null;
+  let homepageSpec: unknown = null;
   try {
     const manifest = await getManifest();
     activeCampaigns = manifest.activeCampaigns || [];
     components = manifest.activeTheme?.components || {};
     sections = manifest.activeTheme?.sections || null;
+    homepageSpec = manifest.activeTheme?.spec ?? null;
   } catch {}
 
   const show = (key: string) => components[key] !== false;
@@ -103,58 +104,45 @@ export default async function HomePage() {
   const carouselData = sections?.homepage?.carousels;
   const productCarouselData = sections?.homepage?.productCarousels;
 
+  if (homepageSpec != null) {
+    return (
+      <main>
+        {show('campaigns') && activeCampaigns.length > 0 && (
+          <section className="container mx-auto px-4 py-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {activeCampaigns.slice(0, 3).map((campaign) => (
+                <CampaignBanner key={campaign.uid} campaign={campaign} />
+              ))}
+            </div>
+          </section>
+        )}
+        <SpecSection spec={homepageSpec} />
+        {show('newsletter') && (
+          <section className="border-t border-border py-20">
+            <div className="container mx-auto px-4">
+              <div className="mx-auto max-w-xl text-center">
+                <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">
+                  Join the Owuan World
+                </h2>
+                <p className="mt-3 text-muted-foreground">
+                  Subscribe to receive updates on new arrivals, exclusive offers, and styling inspiration.
+                </p>
+                <div className="mt-8">
+                  <NewsletterForm />
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+      </main>
+    );
+  }
+
   return (
     <main>
-      {/* Hero Section */}
+      {/* Hero Section — eski yöntem (spec yokken) */}
       {show('hero') && heroData ? (
-      <section className="relative h-screen min-h-[600px]">
-        {heroData.videoUrl ? (
-          <div className="absolute inset-0">
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="h-full w-full object-cover"
-              poster={heroData.imageUrl}
-            >
-              <source src={heroData.videoUrl} type="video/mp4" />
-            </video>
-            <div className="absolute inset-0 bg-foreground/30" />
-          </div>
-        ) : (
-          <div className="absolute inset-0">
-            <Image
-              src={heroData.imageUrl || "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1920&h=1080&fit=crop"}
-              alt={heroData.heading}
-              fill
-              priority
-              className="object-cover"
-              sizes="100vw"
-            />
-            <div className="absolute inset-0 bg-foreground/30" />
-          </div>
-        )}
-        <div className="relative container mx-auto flex h-full items-center px-4">
-          <div className="max-w-xl">
-            {heroData.subheading && (
-              <span className="text-sm font-medium uppercase tracking-widest text-background/90">
-                {heroData.subheading}
-              </span>
-            )}
-            <h1 className="mt-4 font-serif text-5xl font-bold leading-tight text-background md:text-6xl lg:text-7xl text-balance">
-              {heroData.heading}
-            </h1>
-            {heroData.ctaText && (
-              <div className="mt-8 flex flex-wrap gap-4">
-                <Button asChild size="lg" className="h-12 px-8">
-                  <Link href={heroData.ctaUrl || "/search"}>{heroData.ctaText}</Link>
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
+        <HeroSectionRenderer data={heroData} />
       ) : show('hero') ? (
       <section className="relative h-screen min-h-[600px]">
         <div className="absolute inset-0">
@@ -289,82 +277,13 @@ export default async function HomePage() {
       </section>
       )}
 
-      {/* Dynamic Banners */}
+      {/* Dynamic Banners / Carousels / Product Carousels — spec yoksa eski yöntem */}
       {bannerData && bannerData.length > 0 && (
-        <section className="container mx-auto px-4 py-16">
-          <div
-            className="grid gap-4"
-            style={{ gridTemplateColumns: `repeat(${Math.min(bannerData.length, 3)}, 1fr)` }}
-          >
-            {bannerData.map((banner, i) => (
-              <Link
-                key={i}
-                href={banner.linkUrl}
-                className="group relative overflow-hidden rounded-lg aspect-[3/2]"
-              >
-                <Image
-                  src={banner.imageUrl}
-                  alt={banner.title}
-                  fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  sizes="(min-width: 1024px) 33vw, 100vw"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-6">
-                  <h3 className="text-lg font-bold text-background">{banner.title}</h3>
-                  {banner.description && (
-                    <p className="text-sm text-background/80 mt-1">{banner.description}</p>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
+        <BannerSectionRenderer data={bannerData} />
       )}
-
-      {/* Dynamic Carousels */}
-      {carouselData && carouselData.length > 0 && carouselData.map((carousel, ci) => (
-        <section key={ci} className="container mx-auto px-4 py-16">
-          {carousel.title && (
-            <h2 className="font-serif text-3xl font-bold text-foreground text-center mb-8">
-              {carousel.title}
-            </h2>
-          )}
-          <Carousel className="w-full max-w-5xl mx-auto">
-            <CarouselContent>
-              {carousel.images.map((img, ii) => (
-                <CarouselItem key={ii}>
-                  {img.linkUrl ? (
-                    <Link href={img.linkUrl} className="block relative aspect-[16/9] overflow-hidden rounded-lg">
-                      <Image
-                        src={img.url}
-                        alt={img.alt || `Slide ${ii + 1}`}
-                        fill
-                        className="object-cover"
-                        sizes="(min-width: 1024px) 80vw, 100vw"
-                      />
-                    </Link>
-                  ) : (
-                    <div className="relative aspect-[16/9] overflow-hidden rounded-lg">
-                      <Image
-                        src={img.url}
-                        alt={img.alt || `Slide ${ii + 1}`}
-                        fill
-                        className="object-cover"
-                        sizes="(min-width: 1024px) 80vw, 100vw"
-                      />
-                    </div>
-                  )}
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious className="hidden sm:flex" />
-            <CarouselNext className="hidden sm:flex" />
-          </Carousel>
-        </section>
-      ))}
-
-      {/* Dynamic Product Carousels */}
+      {carouselData && carouselData.length > 0 && (
+        <CarouselSectionRenderer data={carouselData} />
+      )}
       {productCarouselData && productCarouselData.length > 0 && (
         <DynamicProductCarousels items={productCarouselData} />
       )}

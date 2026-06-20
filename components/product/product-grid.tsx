@@ -5,11 +5,13 @@ import { ProductCard } from './product-card';
 
 interface ProductGridProps {
   products: Product[];
-  columns?: 2 | 3 | 4;
+  columns?: 1 | 2 | 3 | 4;
+  cardStyle?: "classic" | "modern" | "minimal";
 }
 
-export function ProductGrid({ products, columns = 4 }: ProductGridProps) {
+export function ProductGrid({ products, columns = 4, cardStyle }: ProductGridProps) {
   const gridCols = {
+    1: 'grid-cols-1',
     2: 'grid-cols-2',
     3: 'grid-cols-2 md:grid-cols-3',
     4: 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4',
@@ -33,6 +35,7 @@ export function ProductGrid({ products, columns = 4 }: ProductGridProps) {
           key={product.id} 
           product={product} 
           priority={index < 4}
+          cardStyle={cardStyle}
         />
       ))}
     </div>

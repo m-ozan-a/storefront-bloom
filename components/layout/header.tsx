@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Search, ShoppingBag, Heart, User, Menu as MenuIcon, X, ChevronRight } from 'lucide-react';
 import { useCartStore, useWishlistStore } from '@/lib/owuan/stores';
-import { getMenu, getNavTree } from '@/lib/owuan';
+import { getMenu, getNavTree, getManifest } from '@/lib/owuan';
 import type { Menu, NavItem } from '@/lib/owuan/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -134,6 +134,9 @@ export function Header() {
   const [mounted, setMounted] = useState(false);
   const [menuItems, setMenuItems] = useState<Menu[]>([]);
   const [navTree, setNavTree] = useState<NavItem[]>([]);
+  const [storeName, setStoreName] = useState('');
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState<{ text: string; enabled: boolean } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -148,6 +151,14 @@ export function Header() {
   useEffect(() => {
     getMenu("header").then(setMenuItems).catch(() => {});
     getNavTree("header").then(setNavTree).catch(() => {});
+    getManifest().then((m) => {
+      setStoreName(m.store.name);
+      setLogoUrl(m.store.logoUrl ?? null);
+      const ann = m.activeTheme?.sections?.announcement;
+      if (ann?.text && ann.enabled !== false) {
+        setAnnouncement({ text: ann.text, enabled: true });
+      }
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -197,9 +208,11 @@ export function Header() {
       )}
     >
       {/* Announcement Bar */}
-      <div className="bg-foreground text-background text-center text-xs py-2 px-4">
-        1500 TL üzeri ücretsiz kargo | Her hafta yeni ürünler
-      </div>
+      {announcement && (
+        <div className="bg-foreground text-background text-center text-xs py-2 px-4">
+          {announcement.text}
+        </div>
+      )}
 
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
@@ -218,9 +231,13 @@ export function Header() {
 
           {/* Logo */}
           <Link href="/" className="flex items-center">
-            <span className="text-2xl font-serif font-bold tracking-tight text-foreground">
-              OWUAN
-            </span>
+            {logoUrl ? (
+              <img src={logoUrl} alt={storeName} className="h-8 w-auto object-contain" />
+            ) : (
+              <span className="text-2xl font-serif font-bold tracking-tight text-foreground">
+                {storeName || 'Mağaza'}
+              </span>
+            )}
           </Link>
 
           {/* Desktop Navigation — Mega Menu */}

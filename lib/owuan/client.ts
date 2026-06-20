@@ -124,10 +124,12 @@ export async function getProductRecommendations(_productId: string): Promise<Pro
 
 let cachedManifest: Manifest | null = null;
 let manifestFetchedAt = 0;
+const MANIFEST_TTL = process.env.NODE_ENV === "development" ? 0 : 5 * 60 * 1000;
+const MANIFEST_REVALIDATE = process.env.NODE_ENV === "development" ? 0 : 300;
 
 export async function getManifest(headers?: Record<string, string>): Promise<Manifest> {
-  if (cachedManifest && Date.now() - manifestFetchedAt < 5 * 60 * 1000) return cachedManifest;
-  const data = await proxyFetch<Manifest>("/storefront/manifest", { next: { revalidate: 300 }, headers });
+  if (MANIFEST_TTL > 0 && cachedManifest && Date.now() - manifestFetchedAt < MANIFEST_TTL) return cachedManifest;
+  const data = await proxyFetch<Manifest>("/storefront/manifest", { next: { revalidate: MANIFEST_REVALIDATE }, headers });
   cachedManifest = data;
   manifestFetchedAt = Date.now();
   return data;

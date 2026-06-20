@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { getProduct, getProductRecommendations } from '@/lib/owuan';
+import { getProduct, getProductRecommendations, getManifest } from '@/lib/owuan';
 import { ProductGallery, ProductInfo, ProductGrid } from '@/components/product';
+import { cn } from '@/lib/utils';
 
 interface ProductPageProps {
   params: Promise<{ handle: string }>;
@@ -55,18 +56,45 @@ async function RecommendedProducts({ productId }: { productId: string }) {
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { handle } = await params;
-  const product = await getProduct(handle);
+  const [product, manifest] = await Promise.all([
+    getProduct(handle),
+    getManifest().catch(() => null),
+  ]);
 
   if (!product) {
     notFound();
   }
 
+  const layout = manifest?.activeTheme?.productPageStyle || "gallery-left";
+
+  const productGallery = <ProductGallery images={product.images} />;
+  const productInfo = <ProductInfo product={product} />;
+
   return (
     <main className="container mx-auto px-4 pt-32 pb-16">
-      <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
-        <ProductGallery images={product.images} />
-        <ProductInfo product={product} />
-      </div>
+      {/* Product Detail Section */}
+      {layout === "stacked" ? (
+        <div className="space-y-8">
+          {productGallery}
+          {productInfo}
+        </div>
+      ) : layout === "minimal" ? (
+        <div className="grid gap-8 lg:grid-cols-[1fr_2fr] lg:gap-12">
+          {productGallery}
+          {productInfo}
+        </div>
+      ) : layout === "gallery-right" ? (
+        <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
+          {productInfo}
+          {productGallery}
+        </div>
+      ) : (
+        /* gallery-left (default) */
+        <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
+          {productGallery}
+          {productInfo}
+        </div>
+      )}
 
       {/* Product Description */}
       <section className="mt-16 border-t border-border pt-8">
