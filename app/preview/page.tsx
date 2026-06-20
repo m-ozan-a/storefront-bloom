@@ -1,18 +1,54 @@
 import { getManifest } from "@/lib/owuan";
 import { SpecSection } from "@/components/sections/SpecSection";
-import { getProducts } from "@/lib/owuan";
-import { ProductCarouselSection } from "@/components/product/product-carousel-section";
 
 // No caching — always show latest spec
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
 
-export default async function PreviewPage() {
-  let homepageSpec: unknown = null;
+// Önizlenebilir yüzeyler. homepage → theme.spec; diğerleri → ilgili slot kolonu (manifest).
+const SLOT_SPEC_KEY = {
+  header: "headerSpec",
+  footer: "footerSpec",
+  productPage: "productPageSpec",
+  listing: "listingSpec",
+} as const;
+
+type Slot = keyof typeof SLOT_SPEC_KEY;
+
+const SLOT_LABEL: Record<Slot, string> = {
+  header: "Üst menü (header)",
+  footer: "Alt bilgi (footer)",
+  productPage: "Ürün detay sayfası",
+  listing: "Ürün listeleme sayfası",
+};
+
+// Bu bölge gerçek mağazada nerede görünür — kullanıcı bağlamı görsün diye.
+const SLOT_HINT: Record<Slot, string> = {
+  header: "Bu bölge her sayfada üst menünün hemen altında görünür.",
+  footer: "Bu bölge her sayfada alt bilginin hemen üstünde görünür.",
+  productPage: "Bu bölge ürün detay sayfasında, ürün bilgilerinin altında görünür.",
+  listing: "Bu bölge ürün listeleme sayfasında, başlığın altında görünür.",
+};
+
+function isSlot(value: string | undefined): value is Slot {
+  return value === "header" || value === "footer" || value === "productPage" || value === "listing";
+}
+
+export default async function PreviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ slot?: string }>;
+}) {
+  const { slot: slotParam } = await searchParams;
+  const slot = isSlot(slotParam) ? slotParam : null;
+
+  let spec: unknown = null;
 
   try {
     const manifest = await getManifest();
-    homepageSpec = manifest.activeTheme?.spec ?? null;
+    spec = slot
+      ? (manifest.activeTheme?.[SLOT_SPEC_KEY[slot]] ?? null)
+      : (manifest.activeTheme?.spec ?? null);
   } catch {
     return (
       <main className="flex min-h-screen items-center justify-center p-8 text-muted-foreground text-sm">
@@ -21,22 +57,37 @@ export default async function PreviewPage() {
     );
   }
 
-  if (!homepageSpec) {
+  if (!spec) {
     return (
       <main className="flex min-h-screen items-center justify-center p-8 text-center">
         <div>
           <p className="text-sm font-medium text-foreground">Henüz bir tasarım yok</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Tema asistanı ile ana sayfa düzenlemesi yaptığınızda burada görünecek.
+            {slot
+              ? `Tema asistanı ile ${SLOT_LABEL[slot]} düzenlemesi yaptığınızda burada görünecek.`
+              : "Tema asistanı ile ana sayfa düzenlemesi yaptığınızda burada görünecek."}
           </p>
         </div>
       </main>
     );
   }
 
+  // Slot önizlemesinde, bölgenin gerçek konumunu açıklayan ince bir bağlam şeridi göster.
+  // Ana sayfa önizlemesi tam sayfa (şerit yok) kalır — mevcut davranış.
+  if (slot) {
+    return (
+      <main>
+        <div className="border-b bg-muted/40 px-4 py-2 text-center text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">{SLOT_LABEL[slot]}</span> önizlemesi — {SLOT_HINT[slot]}
+        </div>
+        <SpecSection spec={spec} />
+      </main>
+    );
+  }
+
   return (
     <main>
-      <SpecSection spec={homepageSpec} />
+      <SpecSection spec={spec} />
     </main>
   );
 }
