@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { getProducts, getProductCount, getCollection, sorting, getManifest } from '@/lib/owuan';
 import { ProductGrid } from '@/components/product';
 import { ProductCard } from '@/components/product/product-card';
+import { SpecSection } from '@/components/sections/SpecSection';
 import { FilterSortBar, ProductPagination, PAGE_SIZE, CollectionSidebar, type FilterOptions } from '@/components/search';
 
 interface SearchPageProps {
@@ -187,6 +188,11 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
         {pageDescription && (
           <p className="mt-2 text-muted-foreground">{pageDescription}</p>
         )}
+      </div>
+
+      {/* Faz G — listeleme ek içerik bölgesi (spec yoksa null). Çekirdek filtre/grid sabit. */}
+      <div className="mb-8 empty:hidden">
+        <SpecSection spec={manifest?.activeTheme?.listingSpec ?? null} />
       </div>
 
       {listingStyle === "list" || listingStyle === "masonry" ? (

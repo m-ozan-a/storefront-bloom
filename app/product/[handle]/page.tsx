@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { getProduct, getProductRecommendations, getManifest } from '@/lib/owuan';
 import { ProductGallery, ProductInfo, ProductGrid } from '@/components/product';
+import { SpecSection } from '@/components/sections/SpecSection';
 import { cn } from '@/lib/utils';
 
 interface ProductPageProps {
@@ -109,6 +110,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
       <Suspense fallback={<div className="mt-16 h-96 animate-pulse bg-secondary" />}>
         <RecommendedProducts productId={product.id} />
       </Suspense>
+
+      {/* Faz G — ürün sayfası ek içerik bölgesi (spec yoksa null). Çekirdek galeri/satın-al sabit. */}
+      <div className="mt-16 empty:hidden">
+        <SpecSection spec={manifest?.activeTheme?.productPageSpec ?? null} />
+      </div>
     </main>
   );
 }

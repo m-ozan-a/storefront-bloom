@@ -255,6 +255,11 @@ export interface ManifestTheme {
   productPageStyle: string | null;
   listingPageStyle: string | null;
   spec: unknown | null;
+  // Faz G — ek içerik bölgesi spec'leri (homepage dışı yüzeyler). Yoksa null = varsayılan görünüm.
+  headerSpec: unknown | null;
+  footerSpec: unknown | null;
+  productPageSpec: unknown | null;
+  listingSpec: unknown | null;
 }
 
 export interface NavItem {

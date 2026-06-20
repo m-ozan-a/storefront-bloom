@@ -155,6 +155,51 @@ export const catalog = defineCatalog(schema, {
       description:
         "Video gömme. url: YouTube/Vimeo izleme linki veya .mp4/.webm dosyası. 16:9 responsive.",
     },
+
+    FeatureGrid: {
+      props: z.object({
+        title: z.string().nullable(),
+        columns: z.enum(["2", "3", "4"]).nullable(),
+        items: z.array(
+          z.object({
+            icon: z.string().nullable(),
+            title: z.string(),
+            description: z.string().nullable(),
+          })
+        ),
+      }),
+      description:
+        "Özellik/hizmet kartları grid'i. items: [{icon? (emoji), title, description?}]. columns: 2/3/4 (varsayılan 3). TrustBadges'ten farkı: kenarlıklı kartlar, sola hizalı, sütun sayısı seçilebilir.",
+    },
+
+    Countdown: {
+      props: z.object({
+        targetDate: z.string(),
+        title: z.string().nullable(),
+        expiredText: z.string().nullable(),
+      }),
+      description:
+        "Geri sayım sayacı. targetDate: ISO tarih (ör. 2026-12-31T23:59:59). Gün/saat/dakika/saniye gösterir, süre dolunca expiredText.",
+    },
+
+    CategoryGrid: {
+      props: z.object({
+        title: z.string().nullable(),
+        columns: z.enum(["2", "3", "4"]).nullable(),
+        maxItems: z.number().nullable(),
+      }),
+      description:
+        "Mağaza kategorileri grid'i. Veri manifest'ten otomatik gelir — kategori girmezsin. title?, columns: 2/3/4 (varsayılan 4), maxItems? (gösterilecek kategori sayısı). Her kart /search/<slug> linkine gider.",
+    },
+
+    NewsletterSignup: {
+      props: z.object({
+        title: z.string().nullable(),
+        subtitle: z.string().nullable(),
+      }),
+      description:
+        "Bülten/e-posta kayıt formu. title?, subtitle? — ziyaretçi e-postasını toplar ve mağaza backend'ine kaydeder (POST).",
+    },
   },
   actions: {},
 });

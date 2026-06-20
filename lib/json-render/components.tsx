@@ -13,6 +13,9 @@ import { BannerTextBelow } from "@/components/sections/banner/variants/text-belo
 import { CarouselFullWidth } from "@/components/sections/carousel/variants/full-width";
 import { CarouselThumbnailNav } from "@/components/sections/carousel/variants/thumbnail-nav";
 import { ProductCarouselSection } from "@/components/product/product-carousel-section";
+import { CountdownSection } from "@/components/sections/countdown";
+import { CategoryGridSection, type CategoryGridItem } from "@/components/sections/category-grid";
+import { NewsletterSignupSection } from "@/components/sections/newsletter-signup";
 import type { Product } from "@/lib/owuan/types";
 
 // Tek kaynak component map — daha önce registry.tsx ve storefront-renderer.tsx
@@ -80,6 +83,26 @@ function ProductCarouselComponent({ props }: {
         maxItems: props.maxItems ?? 8,
         products,
       }]}
+    />
+  );
+}
+
+function CategoryGridComponent({ props }: {
+  props: {
+    title: string | null;
+    columns: "2" | "3" | "4" | null;
+    maxItems: number | null;
+  };
+}) {
+  const categories = useStateValue<CategoryGridItem[]>("/categories") ?? [];
+  return (
+    <CategoryGridSection
+      data={{
+        title: props.title ?? undefined,
+        columns: props.columns ?? undefined,
+        maxItems: props.maxItems ?? undefined,
+        categories,
+      }}
     />
   );
 }
@@ -264,6 +287,54 @@ export const { registry } = defineRegistry(catalog, {
         )}
       </div>
     </section>
+  ),
+
+  FeatureGrid: ({ props }) => {
+    const cols = props.columns ?? "3";
+    const colClass: Record<string, string> = {
+      "2": "sm:grid-cols-2",
+      "3": "sm:grid-cols-2 lg:grid-cols-3",
+      "4": "sm:grid-cols-2 lg:grid-cols-4",
+    };
+    return (
+      <section className="container mx-auto px-4 py-16">
+        {props.title && (
+          <h2 className="mb-8 text-center text-2xl font-bold">{props.title}</h2>
+        )}
+        <div className={`grid gap-6 ${colClass[cols] ?? colClass["3"]}`}>
+          {props.items.map((f, i) => (
+            <div key={i} className="rounded-lg border border-border p-6">
+              {f.icon && <div className="mb-3 text-3xl">{f.icon}</div>}
+              <div className="font-medium">{f.title}</div>
+              {f.description && (
+                <p className="mt-1 text-sm text-muted-foreground">{f.description}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  },
+
+  Countdown: ({ props }) => (
+    <CountdownSection
+      data={{
+        targetDate: props.targetDate,
+        title: props.title ?? undefined,
+        expiredText: props.expiredText ?? undefined,
+      }}
+    />
+  ),
+
+  CategoryGrid: ({ props }) => <CategoryGridComponent props={props} />,
+
+  NewsletterSignup: ({ props }) => (
+    <NewsletterSignupSection
+      data={{
+        title: props.title ?? undefined,
+        subtitle: props.subtitle ?? undefined,
+      }}
+    />
   ),
   },
 });

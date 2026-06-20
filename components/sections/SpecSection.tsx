@@ -1,6 +1,7 @@
 import { StorefrontRenderer } from "@/lib/json-render/storefront-renderer";
-import { getProducts } from "@/lib/owuan";
+import { getProducts, getManifest } from "@/lib/owuan";
 import type { Product } from "@/lib/owuan/types";
+import type { CategoryGridItem } from "@/components/sections/category-grid";
 import type { Spec } from "@json-render/core";
 
 interface FlatSpecElement {
@@ -17,6 +18,10 @@ interface FlatSpec {
 function isFlatSpec(spec: unknown): spec is FlatSpec {
   const s = spec as Record<string, unknown>;
   return s && typeof s.root === "string" && typeof s.elements === "object" && s.elements !== null;
+}
+
+function hasTypeFlat(elements: Record<string, FlatSpecElement>, type: string): boolean {
+  return Object.values(elements).some((el) => el.type === type);
 }
 
 function collectProductCarouselsFlat(elements: Record<string, FlatSpecElement>): { collection?: string; tag?: string }[] {
@@ -60,6 +65,18 @@ export async function SpecSection({ spec }: { spec: unknown }) {
   const initialState: Record<string, unknown> = {};
   for (const [key, products] of Object.entries(productState)) {
     initialState[`/products/${key}`] = products;
+  }
+
+  // Pre-fetch store categories for CategoryGrid elements (manifest-driven).
+  if (hasTypeFlat(spec.elements, "CategoryGrid")) {
+    try {
+      const manifest = await getManifest();
+      initialState["/categories"] = manifest.categories
+        .filter((c) => c.isActive)
+        .map<CategoryGridItem>((c) => ({ title: c.title, slug: c.slug, image: c.image ?? null }));
+    } catch {
+      initialState["/categories"] = [];
+    }
   }
 
   return (

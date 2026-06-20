@@ -5,6 +5,7 @@ import { headers } from 'next/headers';
 import { Inter, Playfair_Display } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { Header, Footer } from '@/components/layout';
+import { SpecSection } from '@/components/sections/SpecSection';
 import { IframeNavigator } from '@/components/layout/iframe-navigator';
 import { ClientDrawers } from '@/components/layout/client-drawers';
 import { AuthProvider } from '@/components/auth';
@@ -149,7 +150,11 @@ export default async function RootLayout({
             <IframeNavigator />
           </Suspense>
           <Header />
+          {/* Faz G — header ek içerik bölgesi (spec yoksa null). Çekirdek header sabit. */}
+          <SpecSection spec={activeTheme?.headerSpec ?? null} />
           {children}
+          {/* Faz G — footer ek içerik bölgesi (spec yoksa null). Çekirdek footer sabit. */}
+          <SpecSection spec={activeTheme?.footerSpec ?? null} />
           <Footer />
           <ClientDrawers />
         </AuthProvider>
