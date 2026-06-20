@@ -87,6 +87,74 @@ export const catalog = defineCatalog(schema, {
       description:
         "Ürün carousel'i. collection veya tag ile filtrelenir. maxItems varsayılan 8",
     },
+
+    FAQ: {
+      props: z.object({
+        title: z.string().nullable(),
+        items: z.array(
+          z.object({
+            question: z.string(),
+            answer: z.string(),
+          })
+        ),
+      }),
+      description:
+        "Sıkça sorulan sorular bölümü. items: [{question, answer}]. Açılır-kapanır (native <details>).",
+    },
+
+    Testimonials: {
+      props: z.object({
+        title: z.string().nullable(),
+        items: z.array(
+          z.object({
+            quote: z.string(),
+            author: z.string(),
+            role: z.string().nullable(),
+            avatarUrl: z.string().nullable(),
+          })
+        ),
+      }),
+      description:
+        "Müşteri yorumları/referansları. items: [{quote, author, role?, avatarUrl?}]. Kart grid'i.",
+    },
+
+    TrustBadges: {
+      props: z.object({
+        items: z.array(
+          z.object({
+            icon: z.string().nullable(),
+            title: z.string(),
+            description: z.string().nullable(),
+          })
+        ),
+      }),
+      description:
+        "Güven rozetleri (kargo/iade/güvenli ödeme vb.). items: [{icon? (emoji), title, description?}].",
+    },
+
+    RichText: {
+      props: z.object({
+        html: z.string(),
+      }),
+      description:
+        "Serbest HTML metin bloğu (mağaza sahibinin içeriği). html: gömülü HTML string.",
+    },
+
+    Spacer: {
+      props: z.object({
+        size: z.enum(["sm", "md", "lg", "xl"]).nullable(),
+      }),
+      description: "Dikey boşluk. size: sm/md/lg/xl (varsayılan md).",
+    },
+
+    VideoEmbed: {
+      props: z.object({
+        url: z.string(),
+        title: z.string().nullable(),
+      }),
+      description:
+        "Video gömme. url: YouTube/Vimeo izleme linki veya .mp4/.webm dosyası. 16:9 responsive.",
+    },
   },
   actions: {},
 });
