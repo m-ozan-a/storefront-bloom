@@ -1,8 +1,7 @@
-import { getManifest, getProducts } from "@/lib/owuan";
-import type { CategoryGridItem } from "@/components/sections/category-grid";
+import { getManifest } from "@/lib/owuan";
 import type { Spec } from "@json-render/core";
+import { isFlatSpec, buildSpecState } from "@/lib/json-render/build-spec-state";
 import { PreviewRenderer } from "./renderer";
-import type { Product } from "@/lib/owuan/types";
 
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
@@ -32,61 +31,6 @@ const SLOT_HINT: Record<Slot, string> = {
 
 function isSlot(value: string | undefined): value is Slot {
   return value === "header" || value === "footer" || value === "productPage" || value === "listing";
-}
-
-interface FlatSpecElement {
-  type?: string;
-  props?: Record<string, unknown>;
-  children?: string[];
-}
-
-interface FlatSpec {
-  root: string;
-  elements: Record<string, FlatSpecElement>;
-}
-
-function isFlatSpec(spec: unknown): spec is FlatSpec {
-  const s = spec as Record<string, unknown>;
-  return !!s && typeof s.root === "string" && typeof s.elements === "object" && s.elements !== null;
-}
-
-async function buildInitialState(spec: FlatSpec): Promise<Record<string, unknown>> {
-  const state: Record<string, unknown> = {};
-  const elements = Object.values(spec.elements);
-
-  // ProductCarousel → /products/{collection|tag|default}
-  const carousels = elements.filter((el) => el.type === "ProductCarousel");
-  if (carousels.length > 0) {
-    await Promise.all(
-      carousels.map(async (el) => {
-        const collection = el.props?.collection as string | undefined;
-        const tag = el.props?.tag as string | undefined;
-        const key = collection || tag || "default";
-        if (state[`/products/${key}`]) return;
-        try {
-          const products = await getProducts({ collection, limit: 12 });
-          state[`/products/${key}`] = products;
-        } catch {
-          state[`/products/${key}`] = [] as Product[];
-        }
-      })
-    );
-  }
-
-  // CategoryGrid → /categories
-  const hasCategoryGrid = elements.some((el) => el.type === "CategoryGrid");
-  if (hasCategoryGrid) {
-    try {
-      const manifest = await getManifest();
-      state["/categories"] = manifest.categories
-        .filter((c) => c.isActive)
-        .map<CategoryGridItem>((c) => ({ title: c.title, slug: c.slug, image: c.image ?? null }));
-    } catch {
-      state["/categories"] = [] as CategoryGridItem[];
-    }
-  }
-
-  return state;
 }
 
 export default async function PreviewPage({
@@ -127,13 +71,14 @@ export default async function PreviewPage({
     );
   }
 
-  const initialState = await buildInitialState(spec);
+  const initialState = await buildSpecState(spec);
 
   if (slot) {
     return (
       <main>
         <div className="border-b bg-muted/40 px-4 py-2 text-center text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">{SLOT_LABEL[slot]}</span> önizlemesi — {SLOT_HINT[slot]}
+          <span className="font-medium text-foreground">{SLOT_LABEL[slot]}</span> önizlemesi —{" "}
+          {SLOT_HINT[slot]}
         </div>
         <PreviewRenderer spec={spec as unknown as Spec} initialState={initialState} />
       </main>
