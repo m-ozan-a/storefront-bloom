@@ -1,11 +1,12 @@
-import { getManifest } from "@/lib/owuan";
-import { SpecSection } from "@/components/sections/SpecSection";
+import { getManifest, getProducts } from "@/lib/owuan";
+import type { CategoryGridItem } from "@/components/sections/category-grid";
+import type { Spec } from "@json-render/core";
+import { PreviewRenderer } from "./renderer";
+import type { Product } from "@/lib/owuan/types";
 
-// No caching — always show latest spec
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
 
-// Önizlenebilir yüzeyler. homepage → theme.spec; diğerleri → ilgili slot kolonu (manifest).
 const SLOT_SPEC_KEY = {
   header: "headerSpec",
   footer: "footerSpec",
@@ -22,7 +23,6 @@ const SLOT_LABEL: Record<Slot, string> = {
   listing: "Ürün listeleme sayfası",
 };
 
-// Bu bölge gerçek mağazada nerede görünür — kullanıcı bağlamı görsün diye.
 const SLOT_HINT: Record<Slot, string> = {
   header: "Bu bölge her sayfada üst menünün hemen altında görünür.",
   footer: "Bu bölge her sayfada alt bilginin hemen üstünde görünür.",
@@ -32,6 +32,61 @@ const SLOT_HINT: Record<Slot, string> = {
 
 function isSlot(value: string | undefined): value is Slot {
   return value === "header" || value === "footer" || value === "productPage" || value === "listing";
+}
+
+interface FlatSpecElement {
+  type?: string;
+  props?: Record<string, unknown>;
+  children?: string[];
+}
+
+interface FlatSpec {
+  root: string;
+  elements: Record<string, FlatSpecElement>;
+}
+
+function isFlatSpec(spec: unknown): spec is FlatSpec {
+  const s = spec as Record<string, unknown>;
+  return !!s && typeof s.root === "string" && typeof s.elements === "object" && s.elements !== null;
+}
+
+async function buildInitialState(spec: FlatSpec): Promise<Record<string, unknown>> {
+  const state: Record<string, unknown> = {};
+  const elements = Object.values(spec.elements);
+
+  // ProductCarousel → /products/{collection|tag|default}
+  const carousels = elements.filter((el) => el.type === "ProductCarousel");
+  if (carousels.length > 0) {
+    await Promise.all(
+      carousels.map(async (el) => {
+        const collection = el.props?.collection as string | undefined;
+        const tag = el.props?.tag as string | undefined;
+        const key = collection || tag || "default";
+        if (state[`/products/${key}`]) return;
+        try {
+          const products = await getProducts({ collection, limit: 12 });
+          state[`/products/${key}`] = products;
+        } catch {
+          state[`/products/${key}`] = [] as Product[];
+        }
+      })
+    );
+  }
+
+  // CategoryGrid → /categories
+  const hasCategoryGrid = elements.some((el) => el.type === "CategoryGrid");
+  if (hasCategoryGrid) {
+    try {
+      const manifest = await getManifest();
+      state["/categories"] = manifest.categories
+        .filter((c) => c.isActive)
+        .map<CategoryGridItem>((c) => ({ title: c.title, slug: c.slug, image: c.image ?? null }));
+    } catch {
+      state["/categories"] = [] as CategoryGridItem[];
+    }
+  }
+
+  return state;
 }
 
 export default async function PreviewPage({
@@ -57,7 +112,7 @@ export default async function PreviewPage({
     );
   }
 
-  if (!spec) {
+  if (!spec || !isFlatSpec(spec)) {
     return (
       <main className="flex min-h-screen items-center justify-center p-8 text-center">
         <div>
@@ -72,22 +127,22 @@ export default async function PreviewPage({
     );
   }
 
-  // Slot önizlemesinde, bölgenin gerçek konumunu açıklayan ince bir bağlam şeridi göster.
-  // Ana sayfa önizlemesi tam sayfa (şerit yok) kalır — mevcut davranış.
+  const initialState = await buildInitialState(spec);
+
   if (slot) {
     return (
       <main>
         <div className="border-b bg-muted/40 px-4 py-2 text-center text-xs text-muted-foreground">
           <span className="font-medium text-foreground">{SLOT_LABEL[slot]}</span> önizlemesi — {SLOT_HINT[slot]}
         </div>
-        <SpecSection spec={spec} />
+        <PreviewRenderer spec={spec as unknown as Spec} initialState={initialState} />
       </main>
     );
   }
 
   return (
     <main>
-      <SpecSection spec={spec} />
+      <PreviewRenderer spec={spec as unknown as Spec} initialState={initialState} />
     </main>
   );
 }

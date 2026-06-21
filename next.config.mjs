@@ -1,5 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async headers() {
+    return [
+      {
+        source: "/preview",
+        headers: [
+          { key: "X-Frame-Options", value: "ALLOWALL" },
+          { key: "Content-Security-Policy", value: "frame-ancestors https://app.owuan.com 'self'" },
+        ],
+      },
+    ];
+  },
   turbopack: {
     root: process.cwd(),
   },
