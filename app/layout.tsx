@@ -9,6 +9,7 @@ import { SpecSection } from '@/components/sections/SpecSection';
 import { IframeNavigator } from '@/components/layout/iframe-navigator';
 import { ClientDrawers } from '@/components/layout/client-drawers';
 import { AuthProvider } from '@/components/auth';
+import { StorefrontProvider } from '@/components/providers/storefront-provider';
 import { OrganizationLd, WebSiteLd } from '@/components/seo/json-ld';
 import { getManifest } from '@/lib/owuan';
 import { generateThemeCSS } from '@/lib/theme-css';
@@ -146,17 +147,19 @@ export default async function RootLayout({
           <style id="theme-custom-css" dangerouslySetInnerHTML={{ __html: customCSS }} />
         )}
         <AuthProvider>
-          <Suspense fallback={null}>
-            <IframeNavigator />
-          </Suspense>
-          <Header />
-          {/* Faz G — header ek içerik bölgesi (spec yoksa null). Çekirdek header sabit. */}
-          <SpecSection spec={activeTheme?.headerSpec ?? null} />
-          {children}
-          {/* Faz G — footer ek içerik bölgesi (spec yoksa null). Çekirdek footer sabit. */}
-          <SpecSection spec={activeTheme?.footerSpec ?? null} />
-          <Footer />
-          <ClientDrawers />
+          <StorefrontProvider>
+            <Suspense fallback={null}>
+              <IframeNavigator />
+            </Suspense>
+            <Header />
+            {/* Faz G — header ek içerik bölgesi (spec yoksa null). Çekirdek header sabit. */}
+            <SpecSection spec={activeTheme?.headerSpec ?? null} />
+            {children}
+            {/* Faz G — footer ek içerik bölgesi (spec yoksa null). Çekirdek footer sabit. */}
+            <SpecSection spec={activeTheme?.footerSpec ?? null} />
+            <Footer />
+            <ClientDrawers />
+          </StorefrontProvider>
         </AuthProvider>
 
         {/* Google Analytics (gtag.js) */}

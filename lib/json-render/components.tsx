@@ -18,8 +18,7 @@ import { CategoryGridSection, type CategoryGridItem } from "@/components/section
 import { NewsletterSignupSection } from "@/components/sections/newsletter-signup";
 import type { Product } from "@/lib/owuan/types";
 
-// Tek kaynak component map — daha önce registry.tsx ve storefront-renderer.tsx
-// içinde ~%90 kopya halinde duruyordu. Yeni component eklerken sadece burayı ve
+// Tek kaynak component map. Yeni component eklerken sadece burayı ve
 // catalog.ts'i güncelle (owuan tarafı için: mastra/storefront/component-catalog.ts).
 
 const HERO_VARIANTS = {

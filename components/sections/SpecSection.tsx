@@ -1,13 +1,12 @@
-import { StorefrontRenderer } from "@/lib/json-render/storefront-renderer";
+import { PageRenderer } from "@json-render/next";
 import { getProducts, getManifest } from "@/lib/owuan";
-import type { Product } from "@/lib/owuan/types";
 import type { CategoryGridItem } from "@/components/sections/category-grid";
 import type { Spec } from "@json-render/core";
 
 interface FlatSpecElement {
   type?: string;
   props?: Record<string, unknown>;
-  children?: string[]; // flat format: string keys
+  children?: string[];
 }
 
 interface FlatSpec {
@@ -18,10 +17,6 @@ interface FlatSpec {
 function isFlatSpec(spec: unknown): spec is FlatSpec {
   const s = spec as Record<string, unknown>;
   return s && typeof s.root === "string" && typeof s.elements === "object" && s.elements !== null;
-}
-
-function hasTypeFlat(elements: Record<string, FlatSpecElement>, type: string): boolean {
-  return Object.values(elements).some((el) => el.type === type);
 }
 
 function collectProductCarouselsFlat(elements: Record<string, FlatSpecElement>): { collection?: string; tag?: string }[] {
@@ -37,15 +32,15 @@ function collectProductCarouselsFlat(elements: Record<string, FlatSpecElement>):
   return result;
 }
 
+function hasTypeFlat(elements: Record<string, FlatSpecElement>, type: string): boolean {
+  return Object.values(elements).some((el) => el.type === type);
+}
+
 export async function SpecSection({ spec }: { spec: unknown }) {
-  if (!spec) return null;
+  if (!spec || !isFlatSpec(spec)) return null;
 
-  // Only flat spec format is supported: { root: "string-key", elements: { key: { type, props, children: string[] } } }
-  if (!isFlatSpec(spec)) return null;
-
-  // Pre-fetch products for all ProductCarousel elements
   const carousels = collectProductCarouselsFlat(spec.elements);
-  const productState: Record<string, Product[]> = {};
+  const productState: Record<string, unknown[]> = {};
 
   if (carousels.length > 0) {
     await Promise.all(
@@ -53,8 +48,7 @@ export async function SpecSection({ spec }: { spec: unknown }) {
         const key = collection || tag || "default";
         if (productState[key]) return;
         try {
-          const products = await getProducts({ collection, limit: 12 });
-          productState[key] = products;
+          productState[key] = await getProducts({ collection, limit: 12 });
         } catch {
           productState[key] = [];
         }
@@ -67,7 +61,6 @@ export async function SpecSection({ spec }: { spec: unknown }) {
     initialState[`/products/${key}`] = products;
   }
 
-  // Pre-fetch store categories for CategoryGrid elements (manifest-driven).
   if (hasTypeFlat(spec.elements, "CategoryGrid")) {
     try {
       const manifest = await getManifest();
@@ -80,9 +73,9 @@ export async function SpecSection({ spec }: { spec: unknown }) {
   }
 
   return (
-    <StorefrontRenderer
+    <PageRenderer
       spec={spec as unknown as Spec}
-      state={initialState}
+      initialState={initialState}
     />
   );
 }
