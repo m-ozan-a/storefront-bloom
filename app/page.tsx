@@ -90,12 +90,16 @@ export default async function HomePage() {
   let components: Record<string, boolean> = {};
   let sections: SectionsData | null = null;
   let homepageSpec: unknown = null;
+  let storeName = '';
+  let storeInstagram: string | null = null;
   try {
     const manifest = await getManifest();
     activeCampaigns = manifest.activeCampaigns || [];
     components = manifest.activeTheme?.components || {};
     sections = manifest.activeTheme?.sections || null;
     homepageSpec = manifest.activeTheme?.spec ?? null;
+    storeName = manifest.store?.name || '';
+    storeInstagram = manifest.store?.socialInstagram || null;
   } catch {}
 
   const show = (key: string) => components[key] !== false;
@@ -122,10 +126,10 @@ export default async function HomePage() {
             <div className="container mx-auto px-4">
               <div className="mx-auto max-w-xl text-center">
                 <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">
-                  Join the Owuan World
+                  {storeName ? `${storeName} Dünyasına Katılın` : 'Bültene Kayıt Ol'}
                 </h2>
                 <p className="mt-3 text-muted-foreground">
-                  Subscribe to receive updates on new arrivals, exclusive offers, and styling inspiration.
+                  Yeni ürünler, özel teklifler ve stil ilhamı için bültenimize kayıt olun.
                 </p>
                 <div className="mt-8">
                   <NewsletterForm />
@@ -385,14 +389,16 @@ export default async function HomePage() {
       )}
 
       {/* Instagram / Social Banner */}
-      {show('social') && (
+      {show('social') && storeInstagram && (
       <section className="bg-foreground py-16">
         <div className="container mx-auto px-4 text-center">
           <h2 className="font-serif text-2xl font-bold text-background md:text-3xl">
-            Follow @owuan
+            {storeInstagram
+              ? `@${storeInstagram.replace(/^https?:\/\/(www\.)?instagram\.com\//, '').replace(/\/$/, '')}`
+              : storeName}
           </h2>
           <p className="mt-2 text-background/70">
-            Join our community and share your style with #OwnYourOwuan
+            Topluluğumuza katılın ve tarzınızı paylaşın
           </p>
           <div className="mt-8 grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-6">
             {[
@@ -515,10 +521,10 @@ export default async function HomePage() {
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-xl text-center">
             <h2 className="font-serif text-2xl font-bold text-foreground md:text-3xl">
-              Join the Owuan World
+              {storeName ? `${storeName} Dünyasına Katılın` : 'Bültene Kayıt Ol'}
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Subscribe to receive updates on new arrivals, exclusive offers, and styling inspiration.
+              Yeni ürünler, özel teklifler ve stil ilhamı için bültenimize kayıt olun.
             </p>
             <div className="mt-8">
               <NewsletterForm />
