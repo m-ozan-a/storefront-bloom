@@ -6,7 +6,12 @@ const nextConfig = {
         source: "/preview",
         headers: [
           { key: "X-Frame-Options", value: "ALLOWALL" },
-          { key: "Content-Security-Policy", value: "frame-ancestors https://app.owuan.com 'self'" },
+          {
+            key: "Content-Security-Policy",
+            value: process.env.NODE_ENV === "development"
+              ? "frame-ancestors http://localhost:3000 'self'"
+              : "frame-ancestors https://app.owuan.com 'self'",
+          },
         ],
       },
     ];
