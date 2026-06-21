@@ -24,7 +24,7 @@ export function HeroFullscreenVideo({ data }: { data: HeroData }) {
           className="h-full w-full object-cover"
           poster={data.imageUrl}
         >
-          <source src={data.videoUrl || ""} type="video/mp4" />
+          {data.videoUrl && <source src={data.videoUrl} type="video/mp4" />}
         </video>
         <div className="absolute inset-0 bg-foreground/40" />
       </div>
