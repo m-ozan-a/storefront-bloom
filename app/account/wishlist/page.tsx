@@ -89,8 +89,6 @@ export default function WishlistPage() {
       updatedAt: '',
       category: '',
       brand: '',
-      rating: 0,
-      reviewCount: 0,
       isNew: false,
       isBestseller: false,
     };
@@ -143,7 +141,7 @@ export default function WishlistPage() {
             Save items you love for later.
           </p>
           <Button asChild className="mt-6">
-            <Link href="/search">Start Shopping</Link>
+            <Link href="/search">Alışverişe Başla</Link>
           </Button>
         </div>
       ) : (
@@ -160,7 +158,7 @@ export default function WishlistPage() {
                 key={item.id}
                 className="group rounded-lg border border-border bg-background overflow-hidden"
               >
-                <Link href={`/product/${p.handle}`} className="block">
+                <Link href={`/urun/${p.handle}`} className="block">
                   <div className="relative aspect-square bg-secondary">
                     {p.featuredImage ? (
                       <Image
@@ -182,7 +180,7 @@ export default function WishlistPage() {
                         handleRemove(p.id);
                       }}
                       className="absolute right-2 top-2 rounded-full bg-background/80 p-1.5 text-muted-foreground opacity-0 transition-opacity hover:text-rose-600 group-hover:opacity-100"
-                      aria-label="Remove from wishlist"
+                      aria-label="Favorilerden çıkar"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -190,7 +188,7 @@ export default function WishlistPage() {
                 </Link>
                 <div className="p-3">
                   <Link
-                    href={`/product/${p.handle}`}
+                    href={`/urun/${p.handle}`}
                     className="text-sm font-medium text-foreground line-clamp-2 hover:underline"
                   >
                     {p.title}
@@ -211,7 +209,7 @@ export default function WishlistPage() {
                     onClick={() => handleAddToCart(item)}
                     disabled={!p.availableForSale}
                   >
-                    {p.availableForSale ? 'Add to Cart' : 'Out of Stock'}
+                    {p.availableForSale ? 'Sepete Ekle' : 'Stokta Yok'}
                   </Button>
                 </div>
               </div>

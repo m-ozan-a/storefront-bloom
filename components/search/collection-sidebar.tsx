@@ -1,16 +1,21 @@
 import Link from 'next/link';
-import { collections } from '@/lib/owuan/dummy-data';
+import { getStorefrontManifest } from '@/lib/owuan/manifest';
 import { cn } from '@/lib/utils';
 
 interface CollectionSidebarProps {
   currentCollection?: string;
 }
 
-export function CollectionSidebar({ currentCollection }: CollectionSidebarProps) {
+export async function CollectionSidebar({ currentCollection }: CollectionSidebarProps) {
+  const manifest = await getStorefrontManifest();
+  const collections = (manifest?.collections ?? [])
+    .filter((c) => c.isActive !== false)
+    .map((c) => ({ handle: c.slug, title: c.title, path: `/search/${c.slug}` }));
+
   return (
     <aside className="hidden lg:block lg:w-56">
       <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">
-        Collections
+        Koleksiyonlar
       </h2>
       <nav>
         <ul className="space-y-2">
@@ -24,7 +29,7 @@ export function CollectionSidebar({ currentCollection }: CollectionSidebarProps)
                   : 'text-muted-foreground'
               )}
             >
-              All Products
+              Tüm Ürünler
             </Link>
           </li>
           {collections.map((collection) => (
@@ -43,6 +48,9 @@ export function CollectionSidebar({ currentCollection }: CollectionSidebarProps)
             </li>
           ))}
         </ul>
+        {collections.length === 0 ? (
+          <p className="mt-2 text-sm text-muted-foreground">Henüz koleksiyon eklenmemiş.</p>
+        ) : null}
       </nav>
     </aside>
   );

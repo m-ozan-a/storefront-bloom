@@ -189,16 +189,16 @@ export default function AddressesPage() {
       {showForm && (
         <div className="mt-6 rounded-lg border border-border p-6">
           <h2 className="text-lg font-semibold text-foreground">
-            {editingId ? 'Edit Address' : 'New Address'}
+            {editingId ? 'Adresi Düzenle' : 'Yeni Adres'}
           </h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="addrTitle">Address Title</Label>
+              <Label htmlFor="addrTitle">Adres Başlığı</Label>
               <Input
                 id="addrTitle"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="Home, Work, etc."
+                placeholder="Ev, İş vb."
               />
             </div>
             <div className="space-y-2 sm:col-span-2">
@@ -207,7 +207,7 @@ export default function AddressesPage() {
                 id="addrLine"
                 value={form.address}
                 onChange={(e) => setForm({ ...form, address: e.target.value })}
-                placeholder="Street, building, apartment number"
+                placeholder="Sokak, bina, daire no"
                 required
               />
             </div>
@@ -217,7 +217,7 @@ export default function AddressesPage() {
                 id="addrCity"
                 value={form.city}
                 onChange={(e) => setForm({ ...form, city: e.target.value })}
-                placeholder="City"
+                placeholder="Şehir"
                 required
               />
             </div>
@@ -227,12 +227,12 @@ export default function AddressesPage() {
                 id="addrState"
                 value={form.state}
                 onChange={(e) => setForm({ ...form, state: e.target.value })}
-                placeholder="District"
+                placeholder="İlçe"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="addrZip">Postal Code</Label>
+              <Label htmlFor="addrZip">Posta Kodu</Label>
               <Input
                 id="addrZip"
                 value={form.zip}
@@ -241,7 +241,7 @@ export default function AddressesPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="addrCountry">Country</Label>
+              <Label htmlFor="addrCountry">Ülke</Label>
               <Input
                 id="addrCountry"
                 value={form.country}
@@ -250,7 +250,7 @@ export default function AddressesPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="addrType">Address Type</Label>
+              <Label htmlFor="addrType">Adres Tipi</Label>
               <Select
                 value={form.addressType || 'shipping'}
                 onValueChange={(v) =>
@@ -261,8 +261,8 @@ export default function AddressesPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="shipping">Shipping</SelectItem>
-                  <SelectItem value="billing">Billing</SelectItem>
+                  <SelectItem value="shipping">Teslimat</SelectItem>
+                  <SelectItem value="billing">Fatura</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -284,7 +284,7 @@ export default function AddressesPage() {
           <div className="mt-6 flex gap-3">
             <Button onClick={handleSave} disabled={isSaving}>
               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {editingId ? 'Update' : 'Save'}
+              {editingId ? 'Güncelle' : 'Kaydet'}
             </Button>
             <Button variant="outline" onClick={cancelForm}>
               Cancel
@@ -349,7 +349,7 @@ export default function AddressesPage() {
                 </p>
               </div>
               <Badge variant="outline" className="mt-3 text-xs">
-                {addr.addressType === 'shipping' ? 'Shipping' : 'Billing'}
+                {addr.addressType === 'shipping' ? 'Teslimat' : 'Fatura'}
               </Badge>
             </div>
           ))}

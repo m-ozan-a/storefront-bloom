@@ -20,8 +20,6 @@ export interface Product {
   updatedAt: string;
   category: string;
   brand: string;
-  rating: number;
-  reviewCount: number;
   isNew: boolean;
   isBestseller: boolean;
   discount?: number;
@@ -74,6 +72,9 @@ export interface Cart {
   };
   lines: CartItem[];
   totalQuantity: number;
+  discountTotal?: number;
+  shippingTotal?: number;
+  appliedCampaigns?: { uid: string; title: string; discountApplied: number; description: string }[];
 }
 
 export interface CartItem {
@@ -156,6 +157,12 @@ export interface ManifestPaymentGateway {
   uid: string;
   provider: string;
   name: string;
+  logo: string | null;
+  method: "redirect" | "iframe" | "internal";
+  isPrimary: boolean;
+  sortOrder: number;
+  installments: number[] | null;
+  callbackMethod: "redis" | "direct";
   isActive: boolean;
   isTestMode: boolean;
 }
@@ -164,6 +171,12 @@ export interface ManifestCarrierGateway {
   uid: string;
   provider: string;
   name: string;
+  logo: string | null;
+  isPrimary: boolean;
+  pricingType: "fixed" | "calculated";
+  basePrice: number | null;
+  campaignDiscount: number | null;
+  campaignLabel: string | null;
   isActive: boolean;
   isTestMode: boolean;
 }
@@ -201,6 +214,11 @@ export interface ManifestStore {
   socialTiktok: string | null;
   socialYoutube: string | null;
   socialLinkedin: string | null;
+  bankTransferEnabled: boolean;
+  ibanDetails: { bankName?: string; iban?: string; accountHolder?: string } | null;
+  shopShippingEnabled: boolean;
+  shopShippingName: string | null;
+  shopShippingPrice: number | null;
 }
 
 export interface ManifestCampaign {
@@ -218,6 +236,7 @@ export interface CampaignBadge {
   campaignUid: string;
   type: string;
   label: string;
+  badgeImage?: string;
 }
 
 export interface AppliedCampaign {

@@ -6,6 +6,9 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+// İçerik sayfaları yavaş değişir → 1 saatlik ISR.
+export const revalidate = 3600;
+
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {

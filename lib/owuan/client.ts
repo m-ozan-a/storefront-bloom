@@ -39,7 +39,7 @@ function getAuthHeaders(extraHeaders?: Record<string, string>): Record<string, s
 
 async function proxyFetch<T = unknown>(
   endpoint: string,
-  options: { method?: string; body?: unknown; next?: { revalidate?: number }; headers?: Record<string, string> } = {}
+  options: { method?: string; body?: unknown; next?: { revalidate?: number; tags?: string[] }; headers?: Record<string, string> } = {}
 ): Promise<T> {
   const url = proxyUrl(endpoint);
   const res = await fetch(url, {
@@ -65,6 +65,8 @@ export async function getProducts(options?: {
   category?: string[]; brand?: string[];
   minPrice?: number; maxPrice?: number;
   size?: string[]; color?: string[];
+  label?: string[];
+  revalidate?: number;
 }): Promise<Product[]> {
   const p = new URLSearchParams();
   if (options?.collection) p.set("collection", options.collection);
@@ -81,8 +83,11 @@ export async function getProducts(options?: {
   if (options?.maxPrice != null) p.set("maxPrice", String(options.maxPrice));
   if (options?.size?.length) p.set("size", options.size.join(","));
   if (options?.color?.length) p.set("color", options.color.join(","));
+  if (options?.label?.length) p.set("label", options.label.join(","));
   const qs = p.toString();
-  return proxyFetch<Product[]>(`/storefront/products${qs ? `?${qs}` : ""}`, { next: { revalidate: 30 } });
+  return proxyFetch<Product[]>(`/storefront/products${qs ? `?${qs}` : ""}`, {
+    next: { revalidate: options?.revalidate ?? 30, tags: ["products"] },
+  });
 }
 
 export async function getProductCount(options?: {
@@ -90,6 +95,7 @@ export async function getProductCount(options?: {
   category?: string[]; brand?: string[];
   minPrice?: number; maxPrice?: number;
   size?: string[]; color?: string[];
+  label?: string[];
 }): Promise<number> {
   const p = new URLSearchParams();
   if (options?.collection) p.set("collection", options.collection);
@@ -100,6 +106,7 @@ export async function getProductCount(options?: {
   if (options?.maxPrice != null) p.set("maxPrice", String(options.maxPrice));
   if (options?.size?.length) p.set("size", options.size.join(","));
   if (options?.color?.length) p.set("color", options.color.join(","));
+  if (options?.label?.length) p.set("label", options.label.join(","));
   const qs = p.toString();
   return proxyFetch<{ count: number }>(`/storefront/products/count${qs ? `?${qs}` : ""}`, { next: { revalidate: 30 } })
     .then((d) => d.count)
@@ -108,7 +115,9 @@ export async function getProductCount(options?: {
 
 export async function getProduct(handle: string): Promise<Product | undefined> {
   try {
-    return await proxyFetch<Product>(`/storefront/products/${handle}`, { next: { revalidate: 60 } });
+    return await proxyFetch<Product>(`/storefront/products/${handle}`, {
+      next: { revalidate: 60, tags: ["products", `product:${handle}`] },
+    });
   } catch { return undefined; }
 }
 
@@ -268,7 +277,7 @@ export interface ServerCartItem {
     uid: string;
     handle: string;
     title: string;
-    featuredImage: { url: string; altText: string } | null;
+    featuredImage: string | { url: string; altText?: string } | null;
   };
   variant: {
     uid: string;
@@ -443,6 +452,10 @@ export interface InitPaymentResult {
 
 export async function initPayment(data: InitPaymentData): Promise<InitPaymentResult> {
   return proxyFetch<InitPaymentResult>("/storefront/checkout/pay/init", { method: "POST", body: data });
+}
+
+export async function getPaymentStatus(orderId: string): Promise<{ status: string }> {
+  return proxyFetch<{ status: string }>(`/storefront/checkout/pay/status/${orderId}?wait=1`);
 }
 
 // ---- Carrier Rates ----

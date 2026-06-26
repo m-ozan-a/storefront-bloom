@@ -22,6 +22,7 @@ export function ProductCard({ product, priority = false, cardStyle = "classic" }
   const originalPrice = product.discount
     ? price / (1 - product.discount / 100)
     : null;
+  const badgeImage = product.campaignBadges?.find((b) => b.badgeImage)?.badgeImage;
 
   const handleWishlistClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -35,11 +36,11 @@ export function ProductCard({ product, priority = false, cardStyle = "classic" }
 
   return (
     <Link
-      href={`/product/${product.handle}`}
+      href={`/urun/${product.handle}`}
       className={cn("group relative block", cardStyle === "minimal" && "space-y-2")}
     >
       <div className={cn(
-        "relative overflow-hidden bg-secondary",
+        "relative overflow-hidden rounded-lg bg-secondary",
         cardStyle === "minimal" ? "aspect-square" : "aspect-[3/4]"
       )}>
         {product.featuredImage ? (
@@ -62,7 +63,7 @@ export function ProductCard({ product, priority = false, cardStyle = "classic" }
           <div className="absolute left-3 top-3 flex flex-col gap-2">
             {product.isNew && (
               <span className="bg-foreground px-2 py-1 text-xs font-medium text-background">
-                NEW
+                YENİ
               </span>
             )}
             {product.discount && (
@@ -81,15 +82,29 @@ export function ProductCard({ product, priority = false, cardStyle = "classic" }
           </div>
         )}
 
+        {/* Campaign badge image (top-right corner) */}
+        {badgeImage && (
+          <div className="absolute right-2 top-2 h-12 w-12 sm:h-14 sm:w-14">
+            <Image
+              src={badgeImage}
+              alt="Kampanya"
+              fill
+              sizes="56px"
+              className="object-contain drop-shadow-sm"
+            />
+          </div>
+        )}
+
         {/* Wishlist Button */}
         {cardStyle !== "minimal" && (
           <button
             onClick={handleWishlistClick}
             className={cn(
-              'absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm transition-all hover:bg-background',
+              'absolute right-3 flex h-9 w-9 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm transition-all hover:bg-background',
+              badgeImage ? 'top-16 sm:top-[4.5rem]' : 'top-3',
               isWishlisted && 'text-rose-600'
             )}
-            aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+            aria-label={isWishlisted ? 'Favorilerden çıkar' : 'Favorilere ekle'}
           >
             <Heart
               className={cn('h-5 w-5', isWishlisted && 'fill-current')}
@@ -113,7 +128,7 @@ export function ProductCard({ product, priority = false, cardStyle = "classic" }
         {/* Classic Quick View */}
         {cardStyle === "classic" && (
           <div className="absolute inset-x-0 bottom-0 translate-y-full bg-foreground/90 py-3 text-center text-sm font-medium text-background transition-transform duration-300 group-hover:translate-y-0">
-            Quick View
+            Hızlı Bakış
           </div>
         )}
       </div>
@@ -137,30 +152,6 @@ export function ProductCard({ product, priority = false, cardStyle = "classic" }
               </span>
             )}
           </div>
-          
-          {cardStyle === "classic" && (
-            <div className="flex items-center gap-1 pt-1">
-              <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                  <svg
-                    key={i}
-                    className={cn(
-                      'h-3 w-3',
-                      i < Math.floor(product.rating)
-                        ? 'fill-amber-400 text-amber-400'
-                        : 'fill-muted text-muted'
-                    )}
-                    viewBox="0 0 20 20"
-                  >
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
-              </div>
-              <span className="text-xs text-muted-foreground">
-                ({product.reviewCount})
-              </span>
-            </div>
-          )}
         </div>
       )}
     </Link>

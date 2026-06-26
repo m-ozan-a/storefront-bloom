@@ -10,6 +10,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product/product-card";
 import type { Product } from "@/lib/owuan/types";
 
@@ -35,12 +36,11 @@ export function ProductCarouselSection({
               {carousel.title}
             </h2>
             {carousel.collection && (
-              <Link
-                href={`/search/${carousel.collection}`}
-                className="hidden items-center gap-1 text-sm font-medium text-foreground hover:underline sm:flex"
-              >
-                Tümünü Gör <ArrowRight className="h-4 w-4" />
-              </Link>
+              <Button asChild variant="link" className="hidden px-0 sm:inline-flex">
+                <Link href={`/search/${carousel.collection}`}>
+                  Tümünü Gör <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
             )}
           </div>
           <Carousel className="w-full">

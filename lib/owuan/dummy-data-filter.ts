@@ -96,7 +96,6 @@ export function filterProducts(
         });
         break;
       case "BEST_SELLING":
-        filtered.sort((a, b) => b.reviewCount - a.reviewCount);
         break;
     }
   }

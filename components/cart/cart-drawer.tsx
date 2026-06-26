@@ -36,7 +36,7 @@ export function CartDrawer() {
         <SheetHeader className="border-b border-border pb-4">
           <SheetTitle className="flex items-center gap-2 text-lg font-semibold">
             <ShoppingBag className="h-5 w-5" />
-            Shopping Cart ({cart.totalQuantity})
+            Sepetim ({cart.totalQuantity})
             {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           </SheetTitle>
         </SheetHeader>
@@ -56,14 +56,14 @@ export function CartDrawer() {
             <ShoppingBag className="h-16 w-16 text-muted-foreground/50" />
             <div>
               <p className="text-lg font-medium text-foreground">
-                Your cart is empty
+                Sepetiniz boş
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Add items to your cart to checkout
+                Alışverişe başlamak için ürün ekleyin
               </p>
             </div>
             <Button onClick={closeCart} asChild>
-              <Link href="/search">Continue Shopping</Link>
+              <Link href="/search">Alışverişe Devam Et</Link>
             </Button>
           </div>
         ) : (
@@ -73,7 +73,7 @@ export function CartDrawer() {
                 {cart.lines.map((item) => (
                   <li key={item.id} className="flex gap-4">
                     <Link
-                      href={`/product/${item.merchandise.product.handle}`}
+                      href={`/urun/${item.merchandise.product.handle}`}
                       onClick={closeCart}
                       className="relative h-24 w-20 flex-shrink-0 overflow-hidden bg-secondary"
                     >
@@ -95,7 +95,7 @@ export function CartDrawer() {
                       <div className="flex justify-between">
                         <div>
                           <Link
-                            href={`/product/${item.merchandise.product.handle}`}
+                            href={`/urun/${item.merchandise.product.handle}`}
                             onClick={closeCart}
                             className="text-sm font-medium text-foreground hover:underline"
                           >
@@ -111,7 +111,7 @@ export function CartDrawer() {
                           onClick={() => removeItem(item.id)}
                           disabled={isLoading}
                           className="text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-                          aria-label="Remove item"
+                          aria-label="Ürünü çıkar"
                         >
                           <X className="h-4 w-4" />
                         </button>
@@ -124,7 +124,7 @@ export function CartDrawer() {
                             }
                             disabled={isLoading}
                             className="flex h-8 w-8 items-center justify-center text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
-                            aria-label="Decrease quantity"
+                            aria-label="Adet azalt"
                           >
                             <Minus className="h-3 w-3" />
                           </button>
@@ -137,7 +137,7 @@ export function CartDrawer() {
                             }
                             disabled={isLoading}
                             className="flex h-8 w-8 items-center justify-center text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
-                            aria-label="Increase quantity"
+                            aria-label="Adet artır"
                           >
                             <Plus className="h-3 w-3" />
                           </button>
@@ -155,38 +155,44 @@ export function CartDrawer() {
             <div className="border-t border-border pt-4">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="text-muted-foreground">Ara Toplam</span>
                   <span className="font-medium text-foreground">
                     {formatPrice(cart.cost.subtotalAmount.amount)}
                   </span>
                 </div>
                 {cart.cost.totalTaxAmount && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Tax</span>
+                    <span className="text-muted-foreground">Vergi</span>
                     <span className="font-medium text-foreground">
                       {formatPrice(cart.cost.totalTaxAmount.amount)}
                     </span>
                   </div>
                 )}
+                {cart.appliedCampaigns && cart.appliedCampaigns.length > 0
+                  ? cart.appliedCampaigns.map((c) => (
+                      <div key={c.uid} className="flex justify-between text-sm text-emerald-600">
+                        <span className="truncate pr-2">{c.title}</span>
+                        <span>-{formatPrice(c.discountApplied.toFixed(2))}</span>
+                      </div>
+                    ))
+                  : null}
                 <div className="flex justify-between text-base font-semibold">
-                  <span>Total</span>
+                  <span>Toplam</span>
                   <span>{formatPrice(cart.cost.totalAmount.amount)}</span>
                 </div>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                Shipping calculated at checkout
+                Kargo ödeme adımında hesaplanır
               </p>
               <Button className="mt-4 w-full h-12" asChild disabled={isLoading}>
                 <Link href="/checkout" onClick={closeCart}>
-                  Proceed to Checkout
+                  Ödemeye Geç
                 </Link>
               </Button>
-              <Button
-                variant="outline"
-                className="mt-2 w-full"
-                onClick={closeCart}
-              >
-                Continue Shopping
+              <Button variant="outline" className="mt-2 w-full" asChild>
+                <Link href="/sepet" onClick={closeCart}>
+                  Sepeti Görüntüle
+                </Link>
               </Button>
             </div>
           </>

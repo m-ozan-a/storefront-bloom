@@ -36,7 +36,7 @@ export function FilterSortBar({ filterOptions }: FilterSortBarProps) {
   };
 
   const currentSortLabel =
-    sorting.find((s) => s.slug === currentSort)?.title || "Relevance";
+    sorting.find((s) => s.slug === currentSort)?.title || "Önerilen";
 
   return (
     <div className="space-y-3">
@@ -45,7 +45,7 @@ export function FilterSortBar({ filterOptions }: FilterSortBarProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button className="gap-2" size="sm" variant="outline">
-              Sort: {currentSortLabel}
+              Sırala: {currentSortLabel}
               <ChevronDown className="size-4" />
             </Button>
           </DropdownMenuTrigger>

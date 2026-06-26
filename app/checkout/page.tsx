@@ -8,7 +8,7 @@ import { useCartStore } from '@/lib/owuan/stores';
 import { formatPrice } from '@/lib/owuan';
 import { useAuth } from '@/components/auth';
 import { guestCheckout, memberCheckout, initPayment, getManifest, getCart } from '@/lib/owuan/client';
-import type { ManifestPaymentGateway, ManifestCarrierGateway } from '@/lib/owuan/types';
+import type { ManifestPaymentGateway, ManifestCarrierGateway, ManifestStore } from '@/lib/owuan/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,6 +26,7 @@ export default function CheckoutPage() {
   const [carrierGateways, setCarrierGateways] = useState<ManifestCarrierGateway[]>([]);
   const [selectedGateway, setSelectedGateway] = useState<string>('');
   const [selectedCarrier, setSelectedCarrier] = useState<string>('');
+  const [store, setStore] = useState<ManifestStore | null>(null);
   const router = useRouter();
 
   // Guest form
@@ -53,6 +54,7 @@ export default function CheckoutPage() {
     getManifest().then((m) => {
       setPaymentGateways(m.paymentGateways || []);
       setCarrierGateways(m.carrierGateways || []);
+      setStore(m.store || null);
     }).catch(() => {});
   }, []);
 
@@ -93,8 +95,25 @@ export default function CheckoutPage() {
     );
   }
 
+  const paymentOptions = [...paymentGateways].sort((a, b) => a.sortOrder - b.sortOrder);
+  const carrierOptions = [...carrierGateways].sort(
+    (a, b) => Number(b.isPrimary) - Number(a.isPrimary)
+  );
+
+  const selectedPayment = paymentOptions.find((g) => g.uid === selectedGateway) || null;
+  const selectedCarrierGw = carrierOptions.find((g) => g.uid === selectedCarrier) || null;
+  const isInternalPayment = selectedPayment?.method === 'internal';
+  const isBankTransfer = isInternalPayment && !!store?.ibanDetails;
+
+  const carrierPrice = (g: ManifestCarrierGateway): number =>
+    Math.max(0, (g.basePrice ?? 0) - (g.campaignDiscount ?? 0));
+
   const subtotal = parseFloat(cart.cost.subtotalAmount.amount);
-  const shipping = subtotal >= 1500 ? 0 : 49.99;
+  const shipping = selectedCarrierGw
+    ? carrierPrice(selectedCarrierGw)
+    : subtotal >= 1500
+    ? 0
+    : 49.99;
   const tax = subtotal * 0.2;
   const total = subtotal + shipping - (serverCart?.discountTotal || 0);
 
@@ -123,13 +142,13 @@ export default function CheckoutPage() {
         deliveryOptionId: selectedCarrier || undefined,
       });
 
-      if (selectedGateway) {
+      if (selectedGateway && !isInternalPayment) {
         const payResult = await initPayment({
           gatewayUid: selectedGateway,
           orderId: result.orderId,
           amount: total.toFixed(2),
           currency: 'TRY',
-          returnUrl: `${window.location.origin}/checkout/success?orderId=${result.orderNumber}`,
+          returnUrl: `${window.location.origin}/checkout/success?orderId=${result.orderNumber}&uid=${result.orderId}`,
           failUrl: `${window.location.origin}/checkout?error=payment_failed`,
           customer: {
             name: guestFullName,
@@ -146,7 +165,7 @@ export default function CheckoutPage() {
       }
 
       clearCart();
-      router.push(`/checkout/success?orderId=${result.orderNumber}`);
+      router.push(`/checkout/success?orderId=${result.orderNumber}&uid=${result.orderId}${isBankTransfer ? '&method=bank_transfer' : ''}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Sipariş sırasında bir hata oluştu.');
     } finally {
@@ -160,13 +179,13 @@ export default function CheckoutPage() {
     try {
       const result = await memberCheckout('', orderNote || undefined, selectedGateway || undefined, selectedCarrier || undefined);
 
-      if (selectedGateway) {
+      if (selectedGateway && !isInternalPayment) {
         const payResult = await initPayment({
           gatewayUid: selectedGateway,
           orderId: result.orderId,
           amount: total.toFixed(2),
           currency: 'TRY',
-          returnUrl: `${window.location.origin}/checkout/success?orderId=${result.orderNumber}`,
+          returnUrl: `${window.location.origin}/checkout/success?orderId=${result.orderNumber}&uid=${result.orderId}`,
           failUrl: `${window.location.origin}/checkout?error=payment_failed`,
         });
         if (payResult.success && payResult.redirectUrl) {
@@ -177,7 +196,7 @@ export default function CheckoutPage() {
       }
 
       clearCart();
-      router.push(`/checkout/success?orderId=${result.orderNumber}`);
+      router.push(`/checkout/success?orderId=${result.orderNumber}&uid=${result.orderId}${isBankTransfer ? '&method=bank_transfer' : ''}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Sipariş sırasında bir hata oluştu.');
     } finally {
@@ -211,7 +230,7 @@ export default function CheckoutPage() {
             {cart.lines.map((item) => (
               <li key={item.id} className="flex gap-4 py-6">
                 <Link
-                  href={`/product/${item.merchandise.product.handle}`}
+                  href={`/urun/${item.merchandise.product.handle}`}
                   className="relative h-32 w-24 flex-shrink-0 overflow-hidden bg-secondary"
                 >
                 {item.merchandise.product.featuredImage ? (
@@ -232,7 +251,7 @@ export default function CheckoutPage() {
                   <div className="flex justify-between">
                     <div>
                       <Link
-                        href={`/product/${item.merchandise.product.handle}`}
+                        href={`/urun/${item.merchandise.product.handle}`}
                         className="font-medium text-foreground hover:underline"
                       >
                         {item.merchandise.product.title}
@@ -422,14 +441,14 @@ export default function CheckoutPage() {
               <p className="mt-4 text-sm text-red-600 bg-red-50 rounded-lg p-3">{error}</p>
             )}
 
-            {paymentGateways.length > 0 && (
+            {paymentOptions.length > 0 && (
               <div className="border-t border-border pt-6 mt-6">
                 <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                   <CreditCard className="h-4 w-4" />
                   Ödeme Yöntemi
                 </h3>
                 <div className="space-y-2">
-                  {paymentGateways.map((gw) => (
+                  {paymentOptions.map((gw) => (
                     <label
                       key={gw.uid}
                       className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
@@ -447,10 +466,24 @@ export default function CheckoutPage() {
                         className="h-4 w-4 accent-foreground"
                       />
                       <div className="flex-1">
-                        <span className="font-medium text-sm">{gw.name}</span>
-                        {gw.isTestMode && (
-                          <Badge variant="outline" className="ml-2 text-xs">Test</Badge>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">{gw.name}</span>
+                          {gw.isPrimary && (
+                            <Badge variant="secondary" className="text-xs">Önerilen</Badge>
+                          )}
+                          {gw.isTestMode && (
+                            <Badge variant="outline" className="text-xs">Test</Badge>
+                          )}
+                        </div>
+                        {gw.method === 'internal' ? (
+                          <span className="text-xs text-muted-foreground">Havale / EFT ile ödeme</span>
+                        ) : gw.installments && gw.installments.length > 0 ? (
+                          <span className="text-xs text-muted-foreground">
+                            {gw.installments.filter((i) => i > 1).length > 0
+                              ? `${Math.max(...gw.installments)} taksite kadar`
+                              : 'Tek çekim'}
+                          </span>
+                        ) : null}
                       </div>
                     </label>
                   ))}
@@ -458,14 +491,14 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            {carrierGateways.length > 0 && (
+            {carrierOptions.length > 0 && (
               <div className="border-t border-border pt-6 mt-6">
                 <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                   <Truck className="h-4 w-4" />
                   Kargo Seçimi
                 </h3>
                 <div className="space-y-2">
-                  {carrierGateways.map((gw) => (
+                  {carrierOptions.map((gw) => (
                     <label
                       key={gw.uid}
                       className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
@@ -482,10 +515,32 @@ export default function CheckoutPage() {
                         onChange={() => setSelectedCarrier(gw.uid)}
                         className="h-4 w-4 accent-foreground"
                       />
-                      <span className="font-medium text-sm">{gw.name}</span>
-                      {gw.isTestMode && (
-                        <Badge variant="outline" className="ml-2 text-xs">Test</Badge>
-                      )}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">{gw.name}</span>
+                          {gw.isPrimary && (
+                            <Badge variant="secondary" className="text-xs">Önerilen</Badge>
+                          )}
+                          {gw.isTestMode && (
+                            <Badge variant="outline" className="text-xs">Test</Badge>
+                          )}
+                        </div>
+                        {gw.campaignLabel && (
+                          <span className="text-xs text-emerald-600">{gw.campaignLabel}</span>
+                        )}
+                      </div>
+                      <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                        {gw.campaignDiscount && gw.campaignDiscount > 0 && gw.basePrice ? (
+                          <span className="text-xs text-muted-foreground line-through">
+                            {formatPrice(gw.basePrice.toFixed(2))}
+                          </span>
+                        ) : null}
+                        {gw.pricingType === 'calculated'
+                          ? 'Adımda hesaplanır'
+                          : carrierPrice(gw) === 0
+                          ? 'Ücretsiz'
+                          : formatPrice(carrierPrice(gw).toFixed(2))}
+                      </span>
                     </label>
                   ))}
                 </div>

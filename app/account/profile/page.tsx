@@ -152,7 +152,7 @@ export default function ProfilePage() {
 
           <div className="mt-8 space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="profileEmail">Email</Label>
+              <Label htmlFor="profileEmail">E-posta</Label>
               <div className="flex items-center gap-2 rounded-md border border-border bg-muted/50 px-3 py-2">
                 <Mail className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
@@ -163,29 +163,29 @@ export default function ProfilePage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="profileName">First Name</Label>
+                <Label htmlFor="profileName">Ad</Label>
                 <Input
                   id="profileName"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="First name"
+                  placeholder="Ad"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="profileLastName">Last Name</Label>
+                <Label htmlFor="profileLastName">Soyad</Label>
                 <Input
                   id="profileLastName"
                   value={form.lastName}
                   onChange={(e) =>
                     setForm({ ...form, lastName: e.target.value })
                   }
-                  placeholder="Last name"
+                  placeholder="Soyad"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="profilePhone">Phone</Label>
+              <Label htmlFor="profilePhone">Telefon</Label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input

@@ -45,11 +45,11 @@ export type { Product, Collection, Menu, Page, Cart, CartItem, SortFilterItem, M
 
 // Sorting options
 export const sorting: SortFilterItem[] = [
-  { title: "Relevance", slug: null, sortKey: "RELEVANCE", reverse: false },
-  { title: "Trending", slug: "trending", sortKey: "BEST_SELLING", reverse: false },
-  { title: "Latest arrivals", slug: "latest", sortKey: "CREATED_AT", reverse: true },
-  { title: "Price: Low to high", slug: "price-asc", sortKey: "PRICE", reverse: false },
-  { title: "Price: High to low", slug: "price-desc", sortKey: "PRICE", reverse: true },
+  { title: "Önerilen", slug: null, sortKey: "RELEVANCE", reverse: false },
+  { title: "Öne Çıkanlar", slug: "trending", sortKey: "BEST_SELLING", reverse: false },
+  { title: "En Yeniler", slug: "latest", sortKey: "CREATED_AT", reverse: true },
+  { title: "Fiyat: Düşükten Yükseğe", slug: "price-asc", sortKey: "PRICE", reverse: false },
+  { title: "Fiyat: Yüksekten Düşüğe", slug: "price-desc", sortKey: "PRICE", reverse: true },
 ];
 
 // ---- Product APIs ----
@@ -67,6 +67,8 @@ export async function getProducts(options?: {
   maxPrice?: number;
   size?: string[];
   color?: string[];
+  label?: string[];
+  revalidate?: number;
 }): Promise<Product[]> {
   try {
     const products = await apiGetProducts(options);
@@ -92,6 +94,7 @@ export async function getProductCount(options?: {
   maxPrice?: number;
   size?: string[];
   color?: string[];
+  label?: string[];
 }): Promise<number> {
   try {
     const count = await apiGetProductCount(options);

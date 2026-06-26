@@ -11,11 +11,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 const statusLabel: Record<string, string> = {
-  processing: 'Processing',
-  cancelled: 'Cancelled',
-  returned: 'Returned',
-  partially_returned: 'Partially Returned',
-  waiting_return: 'Return Pending',
+  processing: 'Hazırlanıyor',
+  cancelled: 'İptal Edildi',
+  returned: 'İade Edildi',
+  partially_returned: 'Kısmen İade Edildi',
+  waiting_return: 'İade Bekliyor',
 };
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -27,9 +27,9 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 };
 
 const deliveryLabel: Record<string, string> = {
-  waiting: 'Awaiting Shipment',
-  shipped: 'In Transit',
-  delivered: 'Delivered',
+  waiting: 'Kargo Bekliyor',
+  shipped: 'Yolda',
+  delivered: 'Teslim Edildi',
 };
 
 export default function OrdersPage() {
@@ -106,7 +106,7 @@ export default function OrdersPage() {
             Orders you place will appear here.
           </p>
           <Button asChild className="mt-6">
-            <Link href="/search">Start Shopping</Link>
+            <Link href="/search">Alışverişe Başla</Link>
           </Button>
         </div>
       ) : (

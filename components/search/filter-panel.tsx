@@ -73,7 +73,7 @@ export function FilterPanel({ options }: { options: FilterOptions }) {
           >
             <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" />
           </svg>
-          Filter
+          Filtrele
           {activeFilterCount > 0 && (
             <Badge className="ml-1 h-5 min-w-5 rounded-full px-1 text-[10px]" variant="secondary">
               {activeFilterCount}
@@ -84,10 +84,10 @@ export function FilterPanel({ options }: { options: FilterOptions }) {
       <SheetContent className="flex w-[340px] flex-col sm:max-w-[340px]" side="right">
         <SheetHeader className="shrink-0">
           <div className="flex items-center justify-between">
-            <SheetTitle className="text-lg">Filters</SheetTitle>
+            <SheetTitle className="text-lg">Filtreler</SheetTitle>
             {activeFilterCount > 0 && (
               <Button onClick={clearAllFilters} size="sm" variant="ghost">
-                Clear all
+                Tümünü Temizle
               </Button>
             )}
           </div>
@@ -99,7 +99,7 @@ export function FilterPanel({ options }: { options: FilterOptions }) {
           {/* Category */}
           {options.categories.length > 0 && (
             <>
-              <FilterSection title="Category">
+              <FilterSection title="Kategori">
                 <div className="grid gap-2">
                   {options.categories.map((cat) => (
                     <label
@@ -123,7 +123,7 @@ export function FilterPanel({ options }: { options: FilterOptions }) {
           {/* Brand */}
           {options.brands.length > 0 && (
             <>
-              <FilterSection title="Brand">
+              <FilterSection title="Marka">
                 <div className="grid gap-2">
                   {options.brands.map((b) => (
                     <label
@@ -145,7 +145,7 @@ export function FilterPanel({ options }: { options: FilterOptions }) {
           )}
 
           {/* Price Range */}
-          <FilterSection title="Price Range">
+          <FilterSection title="Fiyat Aralığı">
             <div className="grid gap-3">
               <div className="flex items-center gap-2">
                 <Input
@@ -155,7 +155,7 @@ export function FilterPanel({ options }: { options: FilterOptions }) {
                   type="number"
                   value={minPriceInput}
                 />
-                <span className="text-xs text-muted-foreground">to</span>
+                <span className="text-xs text-muted-foreground">-</span>
                 <Input
                   className="h-8 text-sm"
                   onChange={(e) => setMaxPriceInput(e.target.value)}
@@ -170,7 +170,7 @@ export function FilterPanel({ options }: { options: FilterOptions }) {
                 size="sm"
                 variant="secondary"
               >
-                Apply
+                Uygula
               </Button>
             </div>
           </FilterSection>
@@ -179,7 +179,7 @@ export function FilterPanel({ options }: { options: FilterOptions }) {
           {/* Size */}
           {options.sizes.length > 0 && (
             <>
-              <FilterSection title="Size">
+              <FilterSection title="Beden">
                 <div className="flex flex-wrap gap-2">
                   {options.sizes.map((s) => {
                     const isSelected = filters.size.includes(s);
@@ -207,7 +207,7 @@ export function FilterPanel({ options }: { options: FilterOptions }) {
           {/* Color */}
           {options.colors.length > 0 && (
             <>
-              <FilterSection title="Color">
+              <FilterSection title="Renk">
                 <div className="grid gap-2">
                   {options.colors.map((c) => (
                     <label
@@ -232,7 +232,7 @@ export function FilterPanel({ options }: { options: FilterOptions }) {
         {/* Apply button at bottom */}
         <div className="shrink-0 pt-2">
           <Button className="w-full" onClick={() => setOpen(false)} size="sm">
-            Show results
+            Sonuçları Göster
           </Button>
         </div>
       </SheetContent>

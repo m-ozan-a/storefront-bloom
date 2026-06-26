@@ -1,76 +1,35 @@
-import { getManifest } from '@/lib/owuan';
-import { SpecSection } from '@/components/sections/SpecSection';
-import type { ManifestCampaign } from '@/lib/owuan/types';
-import { Percent, Truck } from 'lucide-react';
+import { getProducts } from '@/lib/owuan';
+import { getStorefrontManifest } from '@/lib/owuan/manifest';
+import { PageShell } from '@/components/page-shell';
+import type { CategoryGridItem } from '@/components/sections/category-grid';
+import type { Product } from '@/lib/owuan/types';
 
-function getCampaignIcon(type: string) {
-  switch (type) {
-    case 'discount_percent':
-    case 'discount_amount':
-      return <Percent className="h-5 w-5" />;
-    case 'free_shipping':
-      return <Truck className="h-5 w-5" />;
-    default:
-      return <Percent className="h-5 w-5" />;
-  }
-}
+const DEFAULT_WRAPPERS = ['hero', 'category-banners', 'product-showcase', 'trust-badges', 'newsletter'];
 
-function CampaignBanner({ campaign }: { campaign: ManifestCampaign }) {
-  let label = '';
-  switch (campaign.campaignType) {
-    case 'discount_percent':
-      label = `%${campaign.discountPercent} İndirim`;
-      break;
-    case 'discount_amount':
-      label = `₺${campaign.discountAmount} İndirim`;
-      break;
-    case 'free_shipping':
-      label = 'Ücretsiz Kargo';
-      break;
-    case 'buy_x_get_y':
-      label = campaign.title;
-      break;
-    default:
-      label = campaign.title;
-  }
-
-  return (
-    <div className="flex items-center gap-3 rounded-lg bg-gradient-to-r from-pink-500/10 to-rose-500/10 border border-pink-200 px-4 py-3">
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-pink-100 text-pink-600">
-        {getCampaignIcon(campaign.campaignType)}
-      </div>
-      <div>
-        <p className="font-semibold text-foreground">{label}</p>
-        <p className="text-sm text-muted-foreground">{campaign.title}</p>
-      </div>
-    </div>
-  );
-}
+// 1 saatlik ISR; ürün/fiyat değişince owuan /api/revalidate (tag: products) ile anında purge edilir.
+export const revalidate = 3600;
 
 export default async function HomePage() {
-  let activeCampaigns: ManifestCampaign[] = [];
-  let homepageSpec: unknown = null;
-  let showCampaigns = true;
-  try {
-    const manifest = await getManifest();
-    activeCampaigns = manifest.activeCampaigns || [];
-    homepageSpec = manifest.activeTheme?.spec ?? null;
-    const components: Record<string, boolean> = manifest.activeTheme?.components || {};
-    showCampaigns = components['campaigns'] !== false;
-  } catch {}
+  const [manifest, products] = await Promise.all([
+    getStorefrontManifest(),
+    getProducts({ limit: 8, revalidate: 3600 }).catch(() => [] as Product[]),
+  ]);
+
+  const categories: CategoryGridItem[] = (manifest?.categories ?? [])
+    .filter((c) => c.isActive !== false)
+    .map((c) => ({ title: c.title, slug: c.slug, image: c.image ?? null }));
+
+  const wrappers = manifest?.template?.wrappers ?? DEFAULT_WRAPPERS;
 
   return (
-    <main>
-      {showCampaigns && activeCampaigns.length > 0 && (
-        <section className="container mx-auto px-4 py-4">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {activeCampaigns.slice(0, 3).map((campaign) => (
-              <CampaignBanner key={campaign.uid} campaign={campaign} />
-            ))}
-          </div>
-        </section>
-      )}
-      <SpecSection spec={homepageSpec} />
-    </main>
+    <PageShell
+      wrappers={wrappers}
+      data={{
+        storeName: manifest?.store?.name ?? '',
+        storeDescription: manifest?.store?.description,
+        categories,
+        products,
+      }}
+    />
   );
 }

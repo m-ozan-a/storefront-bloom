@@ -1,5 +1,44 @@
 import type { ManifestTheme } from "@/lib/owuan/types";
 
+function camelToCssVar(key: string): string {
+  return (
+    "--" +
+    key
+      .replace(/([A-Z])/g, "-$1")
+      .replace(/([0-9]+)/g, "-$1")
+      .replace(/^-/, "")
+      .replace(/-+/g, "-")
+      .toLowerCase()
+  );
+}
+
+interface ManifestThemeShape {
+  colors?: Record<string, string>;
+  darkColors?: Record<string, string>;
+  fontFamilies?: { heading?: string; sans?: string; mono?: string };
+  borderRadius?: string;
+  darkModeSupport?: boolean;
+}
+
+// R2 manifest'in flat (camelCase) tema şekli için CSS değişkenleri üretir.
+export function generateThemeCssFromManifest(theme: ManifestThemeShape | null | undefined): string {
+  const colors = theme?.colors;
+  if (!colors) return "";
+  const lines: string[] = [":root {"];
+  for (const [k, v] of Object.entries(colors)) lines.push(`  ${camelToCssVar(k)}: ${v};`);
+  if (theme?.borderRadius) lines.push(`  --radius: ${theme.borderRadius};`);
+  if (theme?.fontFamilies?.heading) lines.push(`  --font-heading: ${theme.fontFamilies.heading};`);
+  if (theme?.fontFamilies?.sans) lines.push(`  --font-sans: ${theme.fontFamilies.sans};`);
+  if (theme?.fontFamilies?.mono) lines.push(`  --font-mono: ${theme.fontFamilies.mono};`);
+  lines.push("}");
+  if (theme?.darkModeSupport && theme.darkColors) {
+    lines.push(".dark {");
+    for (const [k, v] of Object.entries(theme.darkColors)) lines.push(`  ${camelToCssVar(k)}: ${v};`);
+    lines.push("}");
+  }
+  return lines.join("\n");
+}
+
 const COLOR_VAR_MAP: Record<string, string> = {
   primary: "--primary",
   secondary: "--secondary",

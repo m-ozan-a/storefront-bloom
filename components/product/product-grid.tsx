@@ -20,7 +20,7 @@ export function ProductGrid({ products, columns = 4, cardStyle }: ProductGridPro
   if (products.length === 0) {
     return (
       <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
-        <p className="text-lg font-medium text-foreground">No products found</p>
+        <p className="text-lg font-medium text-foreground">Ürün bulunamadı</p>
         <p className="mt-2 text-sm text-muted-foreground">
           Try adjusting your search or filter to find what you&apos;re looking for.
         </p>

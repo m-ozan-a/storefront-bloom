@@ -14,11 +14,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 const statusLabel: Record<string, string> = {
-  processing: 'Processing',
-  cancelled: 'Cancelled',
-  returned: 'Returned',
-  partially_returned: 'Partially Returned',
-  waiting_return: 'Return Pending',
+  processing: 'Hazırlanıyor',
+  cancelled: 'İptal Edildi',
+  returned: 'İade Edildi',
+  partially_returned: 'Kısmen İade Edildi',
+  waiting_return: 'İade Bekliyor',
 };
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -168,19 +168,19 @@ export default function AccountPage() {
             <Link href="/account/orders" className="rounded-lg border border-border p-4 transition-colors hover:bg-secondary/50">
               <Package className="h-5 w-5 text-muted-foreground" />
               <p className="mt-2 text-2xl font-bold text-foreground">{orderCount}</p>
-              <p className="text-sm text-muted-foreground">Orders</p>
+              <p className="text-sm text-muted-foreground">Siparişler</p>
             </Link>
             <Link href="/account/wishlist" className="rounded-lg border border-border p-4 transition-colors hover:bg-secondary/50">
               <Heart className="h-5 w-5 text-muted-foreground" />
               <p className="mt-2 text-2xl font-bold text-foreground">
                 {favoriteCount}
               </p>
-              <p className="text-sm text-muted-foreground">Wishlist Items</p>
+              <p className="text-sm text-muted-foreground">Favoriler</p>
             </Link>
             <Link href="/account/addresses" className="rounded-lg border border-border p-4 transition-colors hover:bg-secondary/50">
               <MapPin className="h-5 w-5 text-muted-foreground" />
               <p className="mt-2 text-2xl font-bold text-foreground">{addressCount}</p>
-              <p className="text-sm text-muted-foreground">Saved Addresses</p>
+              <p className="text-sm text-muted-foreground">Kayıtlı Adresler</p>
             </Link>
           </div>
 
@@ -206,7 +206,7 @@ export default function AccountPage() {
                   You haven&apos;t placed any orders yet.
                 </p>
                 <Button asChild className="mt-4">
-                  <Link href="/search">Start Shopping</Link>
+                  <Link href="/search">Alışverişe Başla</Link>
                 </Button>
               </div>
             ) : (

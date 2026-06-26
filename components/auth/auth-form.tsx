@@ -35,7 +35,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       }
       router.push('/account');
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(err instanceof Error ? err.message : "Bir şeyler ters gitti. Lütfen tekrar deneyin.");
     }
   };
 
@@ -43,51 +43,51 @@ export function AuthForm({ mode }: AuthFormProps) {
     <div className="mx-auto w-full max-w-md">
       <div className="text-center">
         <h1 className="text-2xl font-serif font-bold text-foreground">
-          {mode === 'signin' ? 'Welcome Back' : 'Create Account'}
+          {mode === 'signin' ? 'Tekrar Hoş Geldiniz' : 'Hesap Oluştur'}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {mode === 'signin'
-            ? 'Sign in to access your account'
-            : 'Join Owuan for exclusive benefits'}
+            ? 'Hesabınıza erişmek için giriş yapın'
+            : 'Özel ayrıcalıklar için üye olun'}
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">
         {mode === 'signup' && (
           <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
+            <Label htmlFor="name">Ad Soyad</Label>
             <Input
               id="name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your name"
+              placeholder="Adınız"
               required
             />
           </div>
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">E-posta</Label>
           <Input
             id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email"
+            placeholder="E-posta adresiniz"
             required
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">Şifre</Label>
           <div className="relative">
             <Input
               id="password"
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
+              placeholder="Şifreniz"
               required
               minLength={6}
             />
@@ -111,23 +111,23 @@ export function AuthForm({ mode }: AuthFormProps) {
 
         <Button type="submit" className="w-full h-11" disabled={isLoading}>
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {mode === 'signin' ? 'Sign In' : 'Create Account'}
+          {mode === 'signin' ? 'Giriş Yap' : 'Hesap Oluştur'}
         </Button>
       </form>
 
       <div className="mt-6 text-center text-sm">
         {mode === 'signin' ? (
           <p className="text-muted-foreground">
-            Don&apos;t have an account?{' '}
+            Hesabınız yok mu?{' '}
             <Link href="/account/register" className="font-medium text-foreground hover:underline">
-              Sign up
+              Üye Ol
             </Link>
           </p>
         ) : (
           <p className="text-muted-foreground">
-            Already have an account?{' '}
+            Zaten hesabınız var mı?{' '}
             <Link href="/account/login" className="font-medium text-foreground hover:underline">
-              Sign in
+              Giriş Yap
             </Link>
           </p>
         )}
@@ -136,7 +136,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       {/* Auth Notice */}
       <div className="mt-8 rounded-lg bg-secondary p-4 text-center">
         <p className="text-xs text-muted-foreground">
-          <strong>Owuan Account:</strong> Sign in to track orders, save favorites, and checkout faster.
+          <strong>Hesabınız:</strong> Siparişlerinizi takip etmek, favorilerinizi kaydetmek ve daha hızlı ödeme yapmak için giriş yapın.
         </p>
       </div>
     </div>

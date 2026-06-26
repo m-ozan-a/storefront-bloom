@@ -38,7 +38,7 @@ export function WishlistDrawer() {
         <SheetHeader className="border-b border-border pb-4">
           <SheetTitle className="flex items-center gap-2 text-lg font-semibold">
             <Heart className="h-5 w-5" />
-            Wishlist ({items.length})
+            Favoriler ({items.length})
             {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           </SheetTitle>
         </SheetHeader>
@@ -48,14 +48,14 @@ export function WishlistDrawer() {
             <Heart className="h-16 w-16 text-muted-foreground/50" />
             <div>
               <p className="text-lg font-medium text-foreground">
-                Your wishlist is empty
+                Favori listeniz boş
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Save items you love for later
+                Beğendiğiniz ürünleri sonrası için kaydedin
               </p>
             </div>
             <Button onClick={closeWishlist} asChild>
-              <Link href="/search">Start Shopping</Link>
+              <Link href="/search">Alışverişe Başla</Link>
             </Button>
           </div>
         ) : (
@@ -67,7 +67,7 @@ export function WishlistDrawer() {
                 return (
                   <li key={item.id} className="flex gap-4">
                     <Link
-                      href={`/product/${product.handle}`}
+                      href={`/urun/${product.handle}`}
                       onClick={closeWishlist}
                       className="relative h-24 w-20 flex-shrink-0 overflow-hidden bg-secondary"
                     >
@@ -89,7 +89,7 @@ export function WishlistDrawer() {
                       <div className="flex justify-between">
                         <div>
                           <Link
-                            href={`/product/${product.handle}`}
+                            href={`/urun/${product.handle}`}
                             onClick={closeWishlist}
                             className="text-sm font-medium text-foreground hover:underline"
                           >
@@ -107,7 +107,7 @@ export function WishlistDrawer() {
                           }}
                           disabled={isLoading}
                           className="text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-                          aria-label="Remove from wishlist"
+                          aria-label="Favorilerden çıkar"
                         >
                           <X className="h-4 w-4" />
                         </button>
@@ -127,7 +127,7 @@ export function WishlistDrawer() {
                             }
                           }}
                         >
-                          Add to Cart
+                          Sepete Ekle
                         </Button>
                       </div>
                     </div>

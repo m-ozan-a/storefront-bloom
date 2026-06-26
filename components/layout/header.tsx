@@ -3,126 +3,43 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, ShoppingBag, Heart, User, Menu as MenuIcon, X, ChevronRight } from 'lucide-react';
+import { Search, ShoppingBag, Heart, User, Menu as MenuIcon, X, ChevronDown } from 'lucide-react';
 import { useCartStore, useWishlistStore } from '@/lib/owuan/stores';
-import { getMenu, getNavTree, getManifest } from '@/lib/owuan';
-import type { Menu, NavItem } from '@/lib/owuan/types';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import type { HeaderData, NavLink } from '@/lib/owuan/manifest';
 
-function DesktopNavItem({
-  item,
-  pathname,
-  resolvePath,
-}: {
-  item: NavItem;
-  pathname: string;
-  resolvePath: (item: NavItem) => string;
-}) {
-  const hasChildren = item.children && item.children.length > 0;
-  const path = resolvePath(item);
-  const isActive = pathname === path;
+const NAV_BASE = 'text-sm font-medium px-3 py-2 rounded-md transition-colors hover:text-foreground hover:bg-muted';
 
-  if (!hasChildren) {
-    return (
-      <Link
-        href={path}
-        className={cn(
-          'text-sm font-medium px-3 py-2 rounded-md transition-colors hover:text-foreground hover:bg-muted',
-          isActive ? 'text-foreground bg-muted' : 'text-muted-foreground'
-        )}
-      >
-        {item.title}
-      </Link>
-    );
+function DesktopNavItem({ item, pathname }: { item: NavLink; pathname: string }) {
+  const active = pathname === item.url;
+  const cls = cn(NAV_BASE, active ? 'text-foreground bg-muted' : 'text-muted-foreground');
+  if (!item.children || item.children.length === 0) {
+    return <Link href={item.url} className={cls}>{item.label}</Link>;
   }
-
   return (
     <div className="relative group">
-      <Link
-        href={path}
-        className={cn(
-          'flex items-center gap-1 text-sm font-medium px-3 py-2 rounded-md transition-colors hover:text-foreground hover:bg-muted',
-          isActive ? 'text-foreground bg-muted' : 'text-muted-foreground'
-        )}
-      >
-        {item.title}
-        <ChevronRight className="size-3 rotate-90 transition-transform group-hover:-rotate-90" />
-      </Link>
-      <div className="absolute top-full left-0 pt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50">
-        <div className="bg-card border rounded-lg shadow-lg p-4 min-w-[220px]">
-          {item.image && (
-            <div className="mb-3 rounded-md overflow-hidden">
-              <img src={item.image} alt={item.title} className="w-full h-32 object-cover" />
-            </div>
-          )}
-          <div className="space-y-1">
-            {item.children!.map((child) => {
-              const childPath = resolvePath(child);
-              return (
-                <Link
-                  key={child.title}
-                  href={childPath}
-                  className={cn(
-                    'block text-sm px-3 py-2 rounded-md transition-colors hover:text-foreground hover:bg-muted',
-                    pathname === childPath ? 'text-foreground bg-muted' : 'text-muted-foreground'
-                  )}
-                >
-                  {child.title}
-                </Link>
-              );
-            })}
-          </div>
+      <span className={cn(cls, 'flex cursor-default items-center gap-1')}>
+        {item.label}
+        <ChevronDown className="size-3 transition-transform group-hover:rotate-180" />
+      </span>
+      <div className="invisible absolute left-0 top-full z-50 pt-1 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100">
+        <div className="min-w-[200px] rounded-lg border bg-card p-2 shadow-lg">
+          {item.children.map((c) => (
+            <Link
+              key={`${c.label}-${c.url}`}
+              href={c.url}
+              className="block rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              {c.label}
+            </Link>
+          ))}
         </div>
       </div>
     </div>
   );
 }
 
-function MobileNavTree({
-  items,
-  pathname,
-  resolvePath,
-  depth = 0,
-}: {
-  items: NavItem[];
-  pathname: string;
-  resolvePath: (item: NavItem) => string;
-  depth?: number;
-}) {
-  return (
-    <ul className={cn('space-y-1', depth > 0 && 'pl-4 border-l border-border ml-2')}>
-      {items.map((item) => {
-        const path = resolvePath(item);
-        const hasChildren = item.children && item.children.length > 0;
-        return (
-          <li key={item.title}>
-            <Link
-              href={path}
-              className={cn(
-                'block py-2 font-medium transition-colors',
-                depth === 0 ? 'text-lg' : 'text-sm',
-                pathname === path ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {item.title}
-            </Link>
-            {hasChildren && (
-              <MobileNavTree
-                items={item.children!}
-                pathname={pathname}
-                resolvePath={resolvePath}
-                depth={depth + 1}
-              />
-            )}
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-export function Header() {
+export function Header({ data }: { data: HeaderData }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -132,40 +49,17 @@ export function Header() {
   const { cart, openCart, fetchCart } = useCartStore();
   const { items: wishlistItems, openWishlist } = useWishlistStore();
   const [mounted, setMounted] = useState(false);
-  const [menuItems, setMenuItems] = useState<Menu[]>([]);
-  const [navTree, setNavTree] = useState<NavItem[]>([]);
-  const [storeName, setStoreName] = useState('');
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [announcement, setAnnouncement] = useState<{ text: string; enabled: boolean } | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (mounted) {
-      fetchCart();
-    }
+    if (mounted) fetchCart();
   }, [mounted, fetchCart]);
 
   useEffect(() => {
-    getMenu("header").then(setMenuItems).catch(() => {});
-    getNavTree("header").then(setNavTree).catch(() => {});
-    getManifest().then((m) => {
-      setStoreName(m.store.name);
-      setLogoUrl(m.store.logoUrl ?? null);
-      const ann = m.activeTheme?.sections?.announcement;
-      if (ann?.text && ann.enabled !== false) {
-        setAnnouncement({ text: ann.text, enabled: true });
-      }
-    }).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 0);
-    };
-
+    const handleScroll = () => setIsScrolled(window.scrollY > 0);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -182,21 +76,7 @@ export function Header() {
     }
   };
 
-  const resolveNavPath = (item: NavItem): string => {
-    if (item.path) return item.path;
-    if (item.slug) {
-      switch (item.type) {
-        case "brand": return `/search?brand=${item.slug}`;
-        case "category":
-        case "collection":
-        default: return `/search/${item.slug}`;
-      }
-    }
-    return "#";
-  };
-
-  // Desktop Navigation
-  const hasTreeNav = navTree.length > 0;
+  const links = data.links;
 
   return (
     <header
@@ -207,12 +87,17 @@ export function Header() {
           : 'bg-background'
       )}
     >
-      {/* Announcement Bar */}
-      {announcement && (
-        <div className="bg-foreground text-background text-center text-xs py-2 px-4">
-          {announcement.text}
+      {data.tagline ? (
+        <div className="border-b border-border bg-muted/40 px-4 py-1.5 text-center text-xs tracking-wide text-muted-foreground">
+          {data.tagline}
         </div>
-      )}
+      ) : null}
+
+      {data.announcement ? (
+        <div className="bg-foreground text-background text-center text-xs py-2 px-4">
+          {data.announcement}
+        </div>
+      ) : null}
 
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
@@ -220,44 +105,28 @@ export function Header() {
           <button
             className="lg:hidden text-foreground"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Toggle menu"
+            aria-label="Menü"
           >
-            {isMobileMenuOpen ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <MenuIcon className="h-6 w-6" />
-            )}
+            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
           </button>
 
           {/* Logo */}
           <Link href="/" className="flex items-center">
-            {logoUrl ? (
-              <img src={logoUrl} alt={storeName} className="h-8 w-auto object-contain" />
+            {data.logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={data.logo} alt={data.storeName} className="h-8 w-auto object-contain" />
             ) : (
               <span className="text-2xl font-serif font-bold tracking-tight text-foreground">
-                {storeName || 'Mağaza'}
+                {data.storeName}
               </span>
             )}
           </Link>
 
-          {/* Desktop Navigation — Mega Menu */}
+          {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-1">
-            {hasTreeNav
-              ? navTree.map((item) => <DesktopNavItem key={item.title} item={item} pathname={pathname} resolvePath={resolveNavPath} />)
-              : menuItems.map((item) => (
-                  <Link
-                    key={item.path}
-                    href={item.path}
-                    className={cn(
-                      'text-sm font-medium px-3 py-2 rounded-md transition-colors hover:text-foreground hover:bg-muted',
-                      pathname === item.path
-                        ? 'text-foreground bg-muted'
-                        : 'text-muted-foreground'
-                    )}
-                  >
-                    {item.title}
-                  </Link>
-                ))}
+            {links.map((item) => (
+              <DesktopNavItem key={`${item.label}-${item.url}`} item={item} pathname={pathname} />
+            ))}
           </nav>
 
           {/* Actions */}
@@ -265,7 +134,7 @@ export function Header() {
             <button
               onClick={() => setIsSearchOpen(!isSearchOpen)}
               className="flex h-10 w-10 items-center justify-center text-foreground transition-colors hover:text-foreground/70"
-              aria-label="Search"
+              aria-label="Ara"
             >
               <Search className="h-5 w-5" />
             </button>
@@ -273,7 +142,7 @@ export function Header() {
             <Link
               href="/account"
               className="hidden sm:flex h-10 w-10 items-center justify-center text-foreground transition-colors hover:text-foreground/70"
-              aria-label="Account"
+              aria-label="Hesabım"
             >
               <User className="h-5 w-5" />
             </Link>
@@ -281,86 +150,101 @@ export function Header() {
             <button
               onClick={openWishlist}
               className="relative flex h-10 w-10 items-center justify-center text-foreground transition-colors hover:text-foreground/70"
-              aria-label="Wishlist"
+              aria-label="Favoriler"
             >
               <Heart className="h-5 w-5" />
-              {mounted && wishlistItems.length > 0 && (
+              {mounted && wishlistItems.length > 0 ? (
                 <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-foreground text-[10px] font-medium text-background">
                   {wishlistItems.length}
                 </span>
-              )}
+              ) : null}
             </button>
 
             <button
               onClick={openCart}
               className="relative flex h-10 w-10 items-center justify-center text-foreground transition-colors hover:text-foreground/70"
-              aria-label="Cart"
+              aria-label="Sepet"
             >
               <ShoppingBag className="h-5 w-5" />
-              {mounted && cart.totalQuantity > 0 && (
+              {mounted && cart.totalQuantity > 0 ? (
                 <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-foreground text-[10px] font-medium text-background">
                   {cart.totalQuantity}
                 </span>
-              )}
+              ) : null}
             </button>
           </div>
         </div>
 
         {/* Search Bar */}
-        {isSearchOpen && (
+        {isSearchOpen ? (
           <div className="border-t border-border py-4">
             <form onSubmit={handleSearch} className="relative">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search for products..."
+                placeholder="Ürün ara..."
                 className="w-full bg-secondary px-4 py-3 pl-12 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
                 autoFocus
               />
               <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             </form>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Mobile Menu */}
-      {isMobileMenuOpen && (
+      {isMobileMenuOpen ? (
         <div className="lg:hidden border-t border-border bg-background">
           <nav className="container mx-auto px-4 py-4">
-            {hasTreeNav ? (
-              <MobileNavTree items={navTree} pathname={pathname} resolvePath={resolveNavPath} />
-            ) : (
-              <ul className="space-y-4">
-                {menuItems.map((item) => (
-                  <li key={item.path}>
+            <ul className="space-y-4">
+              {links.map((item) => (
+                <li key={`${item.label}-${item.url}`}>
+                  {item.children && item.children.length > 0 ? (
+                    <>
+                      <span className="block py-2 text-lg font-medium text-foreground">{item.label}</span>
+                      <ul className="ml-3 space-y-2 border-l border-border pl-3">
+                        {item.children.map((c) => (
+                          <li key={`${c.label}-${c.url}`}>
+                            <Link
+                              href={c.url}
+                              className={cn(
+                                'block py-1 text-base font-medium transition-colors',
+                                pathname === c.url ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                              )}
+                            >
+                              {c.label}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : (
                     <Link
-                      href={item.path}
+                      href={item.url}
                       className={cn(
                         'block py-2 text-lg font-medium transition-colors',
-                        pathname === item.path
-                          ? 'text-foreground'
-                          : 'text-muted-foreground hover:text-foreground'
+                        pathname === item.url ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                       )}
                     >
-                      {item.title}
+                      {item.label}
                     </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
+                  )}
+                </li>
+              ))}
+            </ul>
             <div className="border-t border-border pt-4 mt-4">
               <Link
                 href="/account"
                 className="flex items-center gap-2 py-2 text-lg font-medium text-muted-foreground hover:text-foreground"
               >
                 <User className="h-5 w-5" />
-                Account
+                Hesabım
               </Link>
             </div>
           </nav>
         </div>
-      )}
+      ) : null}
     </header>
   );
 }

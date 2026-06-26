@@ -1,92 +1,94 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
+import { ImageOff } from 'lucide-react';
 import type { Image as ImageType } from '@/lib/owuan/types';
 import { cn } from '@/lib/utils';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
+} from '@/components/ui/carousel';
 
 interface ProductGalleryProps {
   images: ImageType[];
 }
 
 export function ProductGallery({ images }: ProductGalleryProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
 
-  const hasImages = images.length > 0;
+  useEffect(() => {
+    if (!api) return;
+    setCurrent(api.selectedScrollSnap());
+    const onSelect = () => setCurrent(api.selectedScrollSnap());
+    api.on('select', onSelect);
+    return () => {
+      api.off('select', onSelect);
+    };
+  }, [api]);
 
-  const goToPrevious = () => {
-    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
-  };
-
-  const goToNext = () => {
-    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
-  };
+  if (images.length === 0) {
+    return (
+      <div className="flex aspect-[3/4] w-full items-center justify-center bg-secondary text-muted-foreground">
+        <ImageOff className="h-16 w-16 opacity-30" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4 md:flex-row-reverse">
-      {/* Main Image */}
-      <div className="relative aspect-[3/4] flex-1 overflow-hidden bg-secondary">
-        {hasImages ? (
-          <Image
-            src={images[currentIndex].url}
-            alt={images[currentIndex].altText || ''}
-            fill
-            sizes="(min-width: 1024px) 50vw, 100vw"
-            className="object-cover"
-            priority
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-            <ImageOff className="h-16 w-16 opacity-30" />
-          </div>
-        )}
-        
-        {images.length > 1 && (
+      {/* Main — shadcn Carousel */}
+      <Carousel setApi={setApi} opts={{ loop: true }} className="flex-1">
+        <CarouselContent>
+          {images.map((image, i) => (
+            <CarouselItem key={i}>
+              <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-secondary">
+                <Image
+                  src={image.url}
+                  alt={image.altText || ''}
+                  fill
+                  sizes="(min-width: 1024px) 50vw, 100vw"
+                  className="object-cover"
+                  priority={i === 0}
+                />
+              </div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        {images.length > 1 ? (
           <>
-            <button
-              onClick={goToPrevious}
-              className="absolute left-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm transition-colors hover:bg-background"
-              aria-label="Previous image"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <button
-              onClick={goToNext}
-              className="absolute right-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm transition-colors hover:bg-background"
-              aria-label="Next image"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
+            <CarouselPrevious className="left-4" />
+            <CarouselNext className="right-4" />
           </>
-        )}
-      </div>
+        ) : null}
+      </Carousel>
 
       {/* Thumbnails */}
-      {images.length > 1 && (
+      {images.length > 1 ? (
         <div className="flex gap-2 md:w-20 md:flex-col">
           {images.map((image, index) => (
             <button
               key={index}
-              onClick={() => setCurrentIndex(index)}
+              type="button"
+              onClick={() => api?.scrollTo(index)}
+              aria-label={`Görsel ${index + 1}`}
               className={cn(
-                'relative aspect-square w-16 overflow-hidden border-2 transition-colors md:w-full',
-                currentIndex === index
+                'relative aspect-square w-16 overflow-hidden rounded-md border-2 transition-colors md:w-full',
+                current === index
                   ? 'border-foreground'
                   : 'border-transparent hover:border-muted-foreground/50'
               )}
             >
-              <Image
-                src={image.url}
-                alt={image.altText}
-                fill
-                sizes="80px"
-                className="object-cover"
-              />
+              <Image src={image.url} alt={image.altText} fill sizes="80px" className="object-cover" />
             </button>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

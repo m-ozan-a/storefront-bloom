@@ -20,11 +20,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 const statusLabel: Record<string, string> = {
-  processing: 'Processing',
-  cancelled: 'Cancelled',
-  returned: 'Returned',
-  partially_returned: 'Partially Returned',
-  waiting_return: 'Return Pending',
+  processing: 'Hazırlanıyor',
+  cancelled: 'İptal Edildi',
+  returned: 'İade Edildi',
+  partially_returned: 'Kısmen İade Edildi',
+  waiting_return: 'İade Bekliyor',
 };
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -36,16 +36,16 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 };
 
 const deliveryLabel: Record<string, string> = {
-  waiting: 'Awaiting Shipment',
-  shipped: 'In Transit',
-  delivered: 'Delivered',
+  waiting: 'Kargo Bekliyor',
+  shipped: 'Yolda',
+  delivered: 'Teslim Edildi',
 };
 
 const paymentLabel: Record<string, string> = {
-  pending: 'Awaiting Payment',
-  completed: 'Paid',
-  refunded: 'Refunded',
-  partially_refunded: 'Partially Refunded',
+  pending: 'Ödeme Bekliyor',
+  completed: 'Ödendi',
+  refunded: 'İade Edildi',
+  partially_refunded: 'Kısmen İade Edildi',
 };
 
 export default function OrderDetailPage() {
@@ -113,10 +113,10 @@ export default function OrderDetailPage() {
         <div className="mt-8 flex flex-col items-center justify-center rounded-lg border border-border py-16 text-center">
           <Package className="h-16 w-16 text-muted-foreground/50" />
           <h2 className="mt-4 text-lg font-semibold text-foreground">
-            {error || 'Order not found'}
+            {error || 'Sipariş bulunamadı'}
           </h2>
           <Button asChild className="mt-6">
-            <Link href="/account/orders">Back to Orders</Link>
+            <Link href="/account/orders">Siparişlere Dön</Link>
           </Button>
         </div>
       </main>
@@ -159,7 +159,7 @@ export default function OrderDetailPage() {
         <div className="rounded-lg border border-border p-4">
           <div className="flex items-center gap-2">
             <CreditCard className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground">Payment</span>
+            <span className="text-sm font-medium text-foreground">Ödeme</span>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             {paymentLabel[order.paymentStatus] || order.paymentStatus}
@@ -168,7 +168,7 @@ export default function OrderDetailPage() {
         <div className="rounded-lg border border-border p-4">
           <div className="flex items-center gap-2">
             <Package className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground">Order</span>
+            <span className="text-sm font-medium text-foreground">Sipariş</span>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             {statusLabel[order.status] || order.status}
@@ -177,7 +177,7 @@ export default function OrderDetailPage() {
         <div className="rounded-lg border border-border p-4">
           <div className="flex items-center gap-2">
             <Truck className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground">Delivery</span>
+            <span className="text-sm font-medium text-foreground">Teslimat</span>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             {deliveryLabel[order.deliveryStatus] || order.deliveryStatus}
@@ -195,13 +195,13 @@ export default function OrderDetailPage() {
             {order.items.map((item) => (
               <li key={item.uid} className="flex gap-4 py-4">
                 <Link
-                  href={item.slug ? `/product/${item.slug}` : '#'}
+                  href={item.slug ? `/urun/${item.slug}` : '#'}
                   className="relative h-24 w-20 flex-shrink-0 overflow-hidden bg-secondary"
                 >
                   {item.featuredImage ? (
                     <Image
                       src={item.featuredImage}
-                      alt={item.title || 'Product'}
+                      alt={item.title || 'Ürün'}
                       fill
                       className="object-cover"
                       sizes="80px"
@@ -217,14 +217,14 @@ export default function OrderDetailPage() {
                     <div>
                       {item.slug ? (
                         <Link
-                          href={`/product/${item.slug}`}
+                          href={`/urun/${item.slug}`}
                           className="font-medium text-foreground hover:underline"
                         >
-                          {item.title || 'Product'}
+                          {item.title || 'Ürün'}
                         </Link>
                       ) : (
                         <span className="font-medium text-foreground">
-                          {item.title || 'Product'}
+                          {item.title || 'Ürün'}
                         </span>
                       )}
                       <p className="mt-0.5 text-sm text-muted-foreground">
@@ -253,34 +253,34 @@ export default function OrderDetailPage() {
             </h3>
             <div className="mt-4 space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Subtotal</span>
+                <span className="text-muted-foreground">Ara Toplam</span>
                 <span className="text-foreground">
                   {formatPrice(order.total.toFixed(2))}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Shipping</span>
+                <span className="text-muted-foreground">Kargo</span>
                 <span className="text-foreground">
                   {order.shippingTotal > 0
                     ? formatPrice(order.shippingTotal.toFixed(2))
-                    : 'Free'}
+                    : 'Ücretsiz'}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Tax</span>
+                <span className="text-muted-foreground">Vergi</span>
                 <span className="text-foreground">
                   {formatPrice(order.totalTax.toFixed(2))}
                 </span>
               </div>
               {order.totalDiscount > 0 && (
                 <div className="flex justify-between text-sm text-emerald-600">
-                  <span>Discount</span>
+                  <span>İndirim</span>
                   <span>-{formatPrice(order.totalDiscount.toFixed(2))}</span>
                 </div>
               )}
               <div className="border-t border-border pt-2">
                 <div className="flex justify-between font-semibold text-foreground">
-                  <span>Total</span>
+                  <span>Toplam</span>
                   <span>
                     {formatPrice(
                       (order.total + order.shippingTotal + order.totalTax - order.totalDiscount).toFixed(2)

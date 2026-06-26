@@ -45,6 +45,15 @@ function mapServerCartToLocal(serverCart: ServerCart): Cart {
         item.variant.selectedOptions.map((o) => o.value).join(' / ') ||
         item.product.title;
 
+      const imageUrl =
+        typeof item.product.featuredImage === 'string'
+          ? item.product.featuredImage
+          : item.product.featuredImage?.url ?? '';
+      const imageAlt =
+        typeof item.product.featuredImage === 'string'
+          ? item.product.title
+          : item.product.featuredImage?.altText ?? '';
+
       return {
         id: item.id,
         quantity: item.quantity,
@@ -68,13 +77,8 @@ function mapServerCartToLocal(serverCart: ServerCart): Cart {
               minVariantPrice: item.price,
             },
             variants: [],
-            featuredImage: item.product.featuredImage
-              ? {
-                  url: item.product.featuredImage.url,
-                  altText: item.product.featuredImage.altText,
-                  width: 800,
-                  height: 1000,
-                }
+            featuredImage: imageUrl
+              ? { url: imageUrl, altText: imageAlt, width: 800, height: 1000 }
               : { url: '', altText: '', width: 0, height: 0 },
             images: [],
             seo: { title: item.product.title, description: '' },
@@ -82,8 +86,6 @@ function mapServerCartToLocal(serverCart: ServerCart): Cart {
             updatedAt: '',
             category: '',
             brand: '',
-            rating: 0,
-            reviewCount: 0,
             isNew: false,
             isBestseller: false,
           },
@@ -91,7 +93,16 @@ function mapServerCartToLocal(serverCart: ServerCart): Cart {
       };
     }),
     totalQuantity: serverCart.totalQuantity,
+    discountTotal: serverCart.discountTotal,
+    shippingTotal: serverCart.shippingTotal,
+    appliedCampaigns: serverCart.appliedCampaigns,
   };
+}
+
+async function loadServerCart(): Promise<Cart | null> {
+  const serverCart = await getCartApi();
+  if (!serverCart) return null;
+  return mapServerCartToLocal(serverCart);
 }
 
 interface CartStore {
@@ -121,9 +132,9 @@ export const useCartStore = create<CartStore>()(
         if (!isAuthenticated()) return;
         set({ isLoading: true, error: null });
         try {
-          const serverCart = await getCartApi();
-          if (serverCart) {
-            set({ cart: mapServerCartToLocal(serverCart) });
+          const cart = await loadServerCart();
+          if (cart) {
+            set({ cart });
           }
         } catch {
           // keep local cart on fetch failure
@@ -148,9 +159,9 @@ export const useCartStore = create<CartStore>()(
           set({ isLoading: true, error: null });
           try {
             await addToCartApi(variantId, quantity);
-            const serverCart = await getCartApi();
-            if (serverCart) {
-              set({ cart: mapServerCartToLocal(serverCart), isOpen: true, isLoading: false });
+            const cart = await loadServerCart();
+            if (cart) {
+              set({ cart, isOpen: true, isLoading: false });
             } else {
               set({ isLoading: false });
             }
@@ -171,9 +182,9 @@ export const useCartStore = create<CartStore>()(
           set({ isLoading: true, error: null });
           try {
             await removeCartItemApi(lineId);
-            const serverCart = await getCartApi();
-            if (serverCart) {
-              set({ cart: mapServerCartToLocal(serverCart), isLoading: false });
+            const cart = await loadServerCart();
+            if (cart) {
+              set({ cart, isLoading: false });
             } else {
               set({ isLoading: false });
             }
@@ -194,9 +205,9 @@ export const useCartStore = create<CartStore>()(
           set({ isLoading: true, error: null });
           try {
             await updateCartItemApi(lineId, quantity);
-            const serverCart = await getCartApi();
-            if (serverCart) {
-              set({ cart: mapServerCartToLocal(serverCart), isLoading: false });
+            const cart = await loadServerCart();
+            if (cart) {
+              set({ cart, isLoading: false });
             } else {
               set({ isLoading: false });
             }

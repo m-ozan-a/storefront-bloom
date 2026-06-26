@@ -1,9 +1,9 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { getProducts, getProductCount, getCollection, sorting, getManifest } from '@/lib/owuan';
+import { getProducts, getProductCount, sorting } from '@/lib/owuan';
+import { getStorefrontManifest } from '@/lib/owuan/manifest';
 import { ProductGrid } from '@/components/product';
 import { ProductCard } from '@/components/product/product-card';
-import { SpecSection } from '@/components/sections/SpecSection';
 import { FilterSortBar, ProductPagination, PAGE_SIZE, CollectionSidebar, type FilterOptions } from '@/components/search';
 
 interface SearchPageProps {
@@ -12,36 +12,25 @@ interface SearchPageProps {
     q?: string; sort?: string; page?: string;
     category?: string; brand?: string;
     minPrice?: string; maxPrice?: string;
-    size?: string; color?: string;
+    size?: string; color?: string; label?: string;
   }>;
 }
 
-async function getFilterOptions(): Promise<FilterOptions> {
-  try {
-    const manifest = await getManifest();
-    const categories = manifest.categories
-      .filter((c) => c.isActive)
-      .map((c) => ({ label: c.title, value: c.slug }));
-    const brands = manifest.brands
-      .filter((b) => b.isActive)
-      .map((b) => ({ label: b.title, value: b.slug }));
+export const revalidate = 3600;
 
-    return {
-      categories,
-      brands,
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      colors: ["Black", "White", "Navy", "Burgundy", "Beige", "Green", "Blue", "Red", "Pink"],
-      priceRange: { min: 0, max: 500 },
-    };
-  } catch {
-    return {
-      categories: [],
-      brands: [],
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      colors: ["Black", "White", "Navy", "Burgundy", "Beige", "Green", "Blue", "Red", "Pink"],
-      priceRange: { min: 0, max: 500 },
-    };
-  }
+async function getFilterOptions(): Promise<FilterOptions> {
+  const manifest = await getStorefrontManifest();
+  return {
+    categories: (manifest?.categories ?? [])
+      .filter((c) => c.isActive !== false)
+      .map((c) => ({ label: c.title, value: c.slug })),
+    brands: (manifest?.brands ?? [])
+      .filter((b) => b.isActive !== false)
+      .map((b) => ({ label: b.title, value: b.slug })),
+    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+    colors: ["Siyah", "Beyaz", "Lacivert", "Bordo", "Bej", "Yeşil", "Mavi", "Kırmızı", "Pembe"],
+    priceRange: { min: 0, max: 500 },
+  };
 }
 
 export async function generateMetadata({
@@ -54,24 +43,22 @@ export async function generateMetadata({
 
   if (q) {
     return {
-      title: `Search: ${q} | Owuan`,
-      description: `Search results for "${q}"`,
+      title: `"${q}" araması`,
+      description: `"${q}" için arama sonuçları`,
     };
   }
 
   if (collectionHandle) {
-    const collectionData = await getCollection(collectionHandle);
-    if (collectionData) {
-      return {
-        title: `${collectionData.title} | Owuan`,
-        description: collectionData.description,
-      };
-    }
+    const manifest = await getStorefrontManifest();
+    const col = manifest?.collections.find((c) => c.slug === collectionHandle);
+    const cat = manifest?.categories.find((c) => c.slug === collectionHandle);
+    const title = col?.title || cat?.title;
+    if (title) return { title, description: col?.description || undefined };
   }
 
   return {
-    title: 'Shop All | Owuan',
-    description: 'Browse our complete collection of women\'s fashion',
+    title: 'Tüm Ürünler',
+    description: 'Tüm ürün koleksiyonumuzu keşfedin',
   };
 }
 
@@ -85,8 +72,10 @@ async function ProductResults({
   maxPrice,
   size,
   color,
+  label,
   page,
   listingStyle,
+  gridColumns,
 }: {
   collection?: string;
   query?: string;
@@ -97,8 +86,10 @@ async function ProductResults({
   maxPrice?: number;
   size?: string[];
   color?: string[];
+  label?: string[];
   page: number;
   listingStyle: string;
+  gridColumns: number;
 }) {
   const sortOption = sorting.find((s) => s.slug === sort);
   const offset = (page - 1) * PAGE_SIZE;
@@ -115,8 +106,10 @@ async function ProductResults({
       maxPrice,
       size,
       color,
+      label,
       limit: PAGE_SIZE,
       offset,
+      revalidate: 3600,
     }),
     getProductCount({
       collection,
@@ -127,13 +120,14 @@ async function ProductResults({
       maxPrice,
       size,
       color,
+      label,
     }),
   ]);
 
   return (
     <>
       <p className="mb-4 text-sm text-muted-foreground">
-        {total} {total === 1 ? 'product' : 'products'}
+        {total} ürün
       </p>
       {listingStyle === "masonry" ? (
         <div className="columns-1 gap-4 md:columns-2 lg:columns-3">
@@ -144,7 +138,7 @@ async function ProductResults({
           ))}
         </div>
       ) : (
-        <ProductGrid products={products} columns={listingStyle === "list" ? 1 : 3} />
+        <ProductGrid products={products} columns={(listingStyle === "list" ? 1 : gridColumns) as 1 | 2 | 3 | 4} />
       )}
       <ProductPagination total={total} />
     </>
@@ -153,28 +147,36 @@ async function ProductResults({
 
 export default async function SearchPage({ params, searchParams }: SearchPageProps) {
   const { collection } = await params;
-  const { q, sort, page, category, brand, minPrice, maxPrice, size, color } = await searchParams;
+  const { q, sort, page, category, brand, minPrice, maxPrice, size, color, label } = await searchParams;
   const collectionHandle = collection?.[0];
   const currentPage = Math.max(1, Number(page || 1));
 
-  const [collectionData, filterOptions, manifest] = await Promise.all([
-    collectionHandle ? getCollection(collectionHandle) : null,
+  const [filterOptions, manifest] = await Promise.all([
     getFilterOptions(),
-    getManifest().catch(() => null),
+    getStorefrontManifest(),
   ]);
 
-  const listingStyle = manifest?.activeTheme?.listingPageStyle || "grid";
+  const listingStyle = (manifest?.theme?.listingPageStyle as string) || "grid";
+  const gridColumns = (manifest?.theme?.productGridColumns as number) || 3;
+
+  const collectionData = collectionHandle
+    ? manifest?.collections.find((c) => c.slug === collectionHandle)
+    : undefined;
+  const categoryTitle = collectionHandle
+    ? manifest?.categories.find((c) => c.slug === collectionHandle)?.title
+    : undefined;
 
   const pageTitle = q
-    ? `Search: "${q}"`
-    : collectionData?.title || 'All Products';
+    ? `"${q}" araması`
+    : collectionData?.title || categoryTitle || 'Tüm Ürünler';
 
-  const pageDescription = collectionData?.description;
+  const pageDescription = collectionData?.description ?? undefined;
 
   const categoryArr = category?.split(",").filter(Boolean);
   const brandArr = brand?.split(",").filter(Boolean);
   const sizeArr = size?.split(",").filter(Boolean);
   const colorArr = color?.split(",").filter(Boolean);
+  const labelArr = label?.split(",").filter(Boolean);
   const minPriceNum = minPrice ? Number(minPrice) : undefined;
   const maxPriceNum = maxPrice ? Number(maxPrice) : undefined;
 
@@ -188,11 +190,6 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
         {pageDescription && (
           <p className="mt-2 text-muted-foreground">{pageDescription}</p>
         )}
-      </div>
-
-      {/* Faz G — listeleme ek içerik bölgesi (spec yoksa null). Çekirdek filtre/grid sabit. */}
-      <div className="mb-8 empty:hidden">
-        <SpecSection spec={manifest?.activeTheme?.listingSpec ?? null} />
       </div>
 
       {listingStyle === "list" || listingStyle === "masonry" ? (
@@ -217,6 +214,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                 category={categoryArr}
                 collection={collectionHandle}
                 color={colorArr}
+                label={labelArr}
                 maxPrice={maxPriceNum}
                 minPrice={minPriceNum}
                 page={currentPage}
@@ -224,6 +222,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                 size={sizeArr}
                 sort={sort}
                 listingStyle={listingStyle}
+                gridColumns={gridColumns}
               />
             </Suspense>
           </div>
@@ -254,6 +253,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                   category={categoryArr}
                   collection={collectionHandle}
                   color={colorArr}
+                  label={labelArr}
                   maxPrice={maxPriceNum}
                   minPrice={minPriceNum}
                   page={currentPage}
@@ -261,6 +261,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                   size={sizeArr}
                   sort={sort}
                   listingStyle={listingStyle}
+                gridColumns={gridColumns}
                 />
               </Suspense>
             </div>

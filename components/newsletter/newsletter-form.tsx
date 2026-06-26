@@ -36,7 +36,7 @@ export function NewsletterForm() {
       <div className="flex gap-2">
         <Input
           type="email"
-          placeholder="Enter your email"
+          placeholder="E-posta adresiniz"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={status === "loading" || status === "success"}
@@ -48,7 +48,7 @@ export function NewsletterForm() {
           {status === "loading" ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            "Subscribe"
+            "Abone Ol"
           )}
         </Button>
       </div>
