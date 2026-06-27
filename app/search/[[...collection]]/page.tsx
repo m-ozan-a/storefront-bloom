@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { getProducts, getProductCount, sorting } from '@/lib/owuan';
-import { getStorefrontManifest } from '@/lib/owuan/manifest';
+import { getProducts, getProductCount, sorting } from '@/actions';
+import { getStorefrontManifest } from '@/actions';
 import { ProductGrid } from '@/components/product';
 import { ProductCard } from '@/components/product/product-card';
 import { FilterSortBar, ProductPagination, PAGE_SIZE, CollectionSidebar, type FilterOptions } from '@/components/search';
@@ -76,6 +76,7 @@ async function ProductResults({
   page,
   listingStyle,
   gridColumns,
+  productCardStyle,
 }: {
   collection?: string;
   query?: string;
@@ -90,6 +91,7 @@ async function ProductResults({
   page: number;
   listingStyle: string;
   gridColumns: number;
+  productCardStyle: "classic" | "modern" | "minimal";
 }) {
   const sortOption = sorting.find((s) => s.slug === sort);
   const offset = (page - 1) * PAGE_SIZE;
@@ -133,12 +135,12 @@ async function ProductResults({
         <div className="columns-1 gap-4 md:columns-2 lg:columns-3">
           {products.map((product) => (
             <div key={product.id} className="mb-4 break-inside-avoid">
-              <ProductCard product={product} cardStyle="minimal" />
+              <ProductCard product={product} cardStyle={productCardStyle} />
             </div>
           ))}
         </div>
       ) : (
-        <ProductGrid products={products} columns={(listingStyle === "list" ? 1 : gridColumns) as 1 | 2 | 3 | 4} />
+        <ProductGrid products={products} columns={(listingStyle === "list" ? 1 : gridColumns) as 1 | 2 | 3 | 4} cardStyle={productCardStyle} />
       )}
       <ProductPagination total={total} />
     </>
@@ -158,6 +160,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
 
   const listingStyle = (manifest?.theme?.listingPageStyle as string) || "grid";
   const gridColumns = (manifest?.theme?.productGridColumns as number) || 3;
+  const productCardStyle = ((manifest?.theme?.productCardStyle as string) || "classic") as "classic" | "modern" | "minimal";
 
   const collectionData = collectionHandle
     ? manifest?.collections.find((c) => c.slug === collectionHandle)
@@ -223,6 +226,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                 sort={sort}
                 listingStyle={listingStyle}
                 gridColumns={gridColumns}
+                productCardStyle={productCardStyle}
               />
             </Suspense>
           </div>
@@ -261,7 +265,8 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                   size={sizeArr}
                   sort={sort}
                   listingStyle={listingStyle}
-                gridColumns={gridColumns}
+                  gridColumns={gridColumns}
+                  productCardStyle={productCardStyle}
                 />
               </Suspense>
             </div>

@@ -158,7 +158,7 @@ export const useCartStore = create<CartStore>()(
         if (isAuthenticated()) {
           set({ isLoading: true, error: null });
           try {
-            await addToCartApi(variantId, quantity);
+            await addToCartApi(variantId || null, quantity, product.id);
             const cart = await loadServerCart();
             if (cart) {
               set({ cart, isOpen: true, isLoading: false });

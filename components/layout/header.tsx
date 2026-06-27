@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Search, ShoppingBag, Heart, User, Menu as MenuIcon, X, ChevronDown } from 'lucide-react';
 import { useCartStore, useWishlistStore } from '@/lib/owuan/stores';
 import { cn } from '@/lib/utils';
-import type { HeaderData, NavLink } from '@/lib/owuan/manifest';
+import type { HeaderData, NavLink } from '@/actions';
 
 const NAV_BASE = 'text-sm font-medium px-3 py-2 rounded-md transition-colors hover:text-foreground hover:bg-muted';
 
@@ -78,29 +78,35 @@ export function Header({ data }: { data: HeaderData }) {
 
   const links = data.links;
 
+  const isTransparent = data.style === "transparent";
+
   return (
-    <header
-      className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-        isScrolled || isMobileMenuOpen
-          ? 'bg-background/95 backdrop-blur-md shadow-sm'
-          : 'bg-background'
-      )}
-    >
+    <>
       {data.tagline ? (
-        <div className="border-b border-border bg-muted/40 px-4 py-1.5 text-center text-xs tracking-wide text-muted-foreground">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-black px-4 py-1.5 text-center text-xs tracking-wide text-white">
           {data.tagline}
         </div>
       ) : null}
 
       {data.announcement ? (
-        <div className="bg-foreground text-background text-center text-xs py-2 px-4">
+        <div className={cn('fixed left-0 right-0 z-50 bg-black px-4 py-2 text-center text-xs text-white', data.tagline ? 'top-7' : 'top-0')}>
           {data.announcement}
         </div>
       ) : null}
 
+      <header
+        data-header-style={data.style ?? "default"}
+        className={cn(
+          'fixed left-0 right-0 z-40 border-b border-border transition-all duration-300',
+          data.tagline && data.announcement ? 'top-[56px]' : data.tagline || data.announcement ? 'top-7' : 'top-0',
+          isScrolled || isMobileMenuOpen
+            ? 'bg-background/95 backdrop-blur-md shadow-sm'
+            : isTransparent ? 'bg-transparent' : 'bg-background'
+        )}
+      >
+
       <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between">
+        <div className="flex items-center justify-between py-4">
           {/* Mobile Menu Button */}
           <button
             className="lg:hidden text-foreground"
@@ -174,10 +180,12 @@ export function Header({ data }: { data: HeaderData }) {
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Search Bar */}
-        {isSearchOpen ? (
-          <div className="border-t border-border py-4">
+      {/* Search Bar */}
+      {isSearchOpen ? (
+        <div className="border-t border-border px-4 py-4">
+          <div className="container mx-auto">
             <form onSubmit={handleSearch} className="relative">
               <input
                 type="text"
@@ -190,8 +198,8 @@ export function Header({ data }: { data: HeaderData }) {
               <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             </form>
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       {/* Mobile Menu */}
       {isMobileMenuOpen ? (
@@ -246,5 +254,6 @@ export function Header({ data }: { data: HeaderData }) {
         </div>
       ) : null}
     </header>
+    </>
   );
 }

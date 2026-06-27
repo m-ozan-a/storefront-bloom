@@ -1,4 +1,4 @@
-import { getManifest } from "@/lib/owuan";
+import { getManifest } from "@/actions";
 import type { Spec } from "@json-render/core";
 import { isFlatSpec, buildSpecState } from "@/lib/json-render/build-spec-state";
 import { PreviewRenderer } from "./renderer";

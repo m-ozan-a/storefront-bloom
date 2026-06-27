@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Package, ArrowLeft, ChevronRight, ShoppingBag } from 'lucide-react';
 import { useAuth } from '@/components/auth';
-import { getOrders, type OrderListItem } from '@/lib/owuan/client';
-import { formatPrice } from '@/lib/owuan';
+import { getOrders, type OrderListItem } from '@/actions';
+import { formatPrice } from '@/actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 

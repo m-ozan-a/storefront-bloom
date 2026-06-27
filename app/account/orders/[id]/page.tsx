@@ -14,8 +14,8 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '@/components/auth';
-import { getOrder, type OrderDetail } from '@/lib/owuan/client';
-import { formatPrice } from '@/lib/owuan';
+import { getOrder, type OrderDetail } from '@/actions';
+import { formatPrice } from '@/actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 

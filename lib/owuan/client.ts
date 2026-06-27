@@ -309,13 +309,15 @@ export async function getCart(): Promise<ServerCart | null> {
 }
 
 export async function addToCartApi(
-  variantUid: string,
-  quantity = 1
+  variantUid: string | null,
+  quantity = 1,
+  productUid?: string
 ): Promise<{ success: boolean; message?: string; error?: string }> {
-  return proxyFetch("/storefront/cart/items", {
-    method: "POST",
-    body: { variantId: variantUid, quantity },
-  });
+  // Varyantsız ürünlerde variantId yok → productId gönder, API default variant'ı çözer.
+  const body = variantUid
+    ? { variantId: variantUid, quantity }
+    : { productId: productUid, quantity };
+  return proxyFetch("/storefront/cart/items", { method: "POST", body });
 }
 
 export async function updateCartItemApi(

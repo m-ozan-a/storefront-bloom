@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getPage } from "@/lib/owuan";
+import { getPage } from "@/actions";
 
 interface PageProps {
   params: Promise<{ slug: string }>;

@@ -8,7 +8,7 @@ import { IframeNavigator } from '@/components/layout/iframe-navigator';
 import { ClientDrawers } from '@/components/layout/client-drawers';
 import { AuthProvider } from '@/components/auth';
 import { WebSiteLd } from '@/components/seo/json-ld';
-import { getStorefrontManifest, getHeaderData, getFooterData } from '@/lib/owuan/manifest';
+import { getStorefrontManifest, getHeaderData, getFooterData } from '@/actions';
 import { generateThemeCssFromManifest } from '@/lib/theme-css';
 import './globals.css';
 
@@ -68,12 +68,12 @@ export default async function RootLayout({
           <Header data={headerData} />
           {children}
           <Footer data={footerData} />
-          <div className="border-t border-border bg-background py-4">
+          <div className="bg-black py-4">
             <a
               href="https://www.owuan.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="container mx-auto flex items-center justify-center gap-2 px-4 text-xs text-muted-foreground transition-colors hover:text-foreground"
+              className="container mx-auto flex items-center justify-center gap-2 px-4 text-xs text-white/70 transition-colors hover:text-white"
             >
               <span>{store?.name ?? 'Bu mağaza'}</span>
               {/* eslint-disable-next-line @next/next/no-img-element */}

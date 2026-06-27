@@ -1,5 +1,5 @@
-import { getProducts } from '@/lib/owuan';
-import { getStorefrontManifest } from '@/lib/owuan/manifest';
+import { getProducts } from '@/actions';
+import { getStorefrontManifest } from '@/actions';
 import { PageShell } from '@/components/page-shell';
 import type { CategoryGridItem } from '@/components/sections/category-grid';
 import type { Product } from '@/lib/owuan/types';
@@ -20,10 +20,12 @@ export default async function HomePage() {
     .map((c) => ({ title: c.title, slug: c.slug, image: c.image ?? null }));
 
   const wrappers = manifest?.template?.wrappers ?? DEFAULT_WRAPPERS;
+  const cardStyle = ((manifest?.theme?.productCardStyle as string) || "classic") as "classic" | "modern" | "minimal";
 
   return (
     <PageShell
       wrappers={wrappers}
+      cardStyle={cardStyle}
       data={{
         storeName: manifest?.store?.name ?? '',
         storeDescription: manifest?.store?.description,

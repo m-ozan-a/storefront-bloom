@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Instagram, Facebook, Youtube, Linkedin } from "lucide-react";
 import { NewsletterForm } from "@/components/newsletter/newsletter-form";
-import type { FooterData } from "@/lib/owuan/manifest";
+import type { FooterData } from "@/actions";
 
 function TiktokIcon({ className }: { className?: string }) {
   return (
@@ -24,7 +24,7 @@ export function Footer({ data }: { data: FooterData }) {
   const socials = Object.entries(data.social).filter(([, url]) => !!url) as [string, string][];
 
   return (
-    <footer className="bg-foreground text-background">
+    <footer className="bg-foreground text-background" data-footer-style={data.style ?? "default"}>
       {/* Newsletter */}
       <div className="border-b border-background/10">
         <div className="container mx-auto px-4 py-12">

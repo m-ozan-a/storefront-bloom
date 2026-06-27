@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { X, Heart, ShoppingBag, Loader2 } from 'lucide-react';
 import { useWishlistStore } from '@/lib/owuan/stores';
 import { useCartStore } from '@/lib/owuan/stores';
-import { formatPrice, getProductById } from '@/lib/owuan';
+import { formatPrice, getProductById } from '@/actions';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,

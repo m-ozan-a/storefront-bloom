@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { CheckCircle, XCircle, Loader2, Landmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Suspense, useEffect, useState } from 'react';
-import { getPaymentStatus, getManifest } from '@/lib/owuan/client';
+import { getPaymentStatus, getManifest } from '@/actions';
 import type { ManifestStore } from '@/lib/owuan/types';
 
 function SuccessContent() {

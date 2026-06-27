@@ -103,6 +103,7 @@ export interface HeaderData {
   links: NavLink[];
   announcement: string | null;
   tagline: string | null;
+  style: string | null;
 }
 
 export interface FooterColumn {
@@ -119,6 +120,7 @@ export interface FooterData {
   address: string | null;
   columns: FooterColumn[];
   collections: { title: string; slug: string }[];
+  style: string | null;
 }
 
 function rootProps(spec: FlatSpec | null | undefined): Record<string, unknown> {
@@ -158,6 +160,9 @@ export function getHeaderData(manifest: StorefrontManifest | null): HeaderData {
     links,
     announcement: typeof p.announcement === "string" ? p.announcement : null,
     tagline: typeof tagline === "string" ? tagline : null,
+    style: typeof (manifest?.theme as Record<string, unknown> | undefined)?.headerStyle === "string"
+      ? (manifest?.theme as Record<string, unknown>).headerStyle as string
+      : null,
   };
 }
 
@@ -180,6 +185,9 @@ export function getFooterData(manifest: StorefrontManifest | null): FooterData {
     collections: (manifest?.collections ?? [])
       .filter((c) => c.isActive !== false)
       .map((c) => ({ title: c.title, slug: c.slug })),
+    style: typeof (manifest?.theme as Record<string, unknown> | undefined)?.footerStyle === "string"
+      ? (manifest?.theme as Record<string, unknown>).footerStyle as string
+      : null,
   };
 }
 

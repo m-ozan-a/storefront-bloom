@@ -21,7 +21,7 @@ import {
   deleteAddress,
   type AddressItem,
   type CreateAddressInput,
-} from '@/lib/owuan/client';
+} from '@/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

@@ -24,8 +24,10 @@ interface CarouselConfig {
 
 export function ProductCarouselSection({
   carousels,
+  cardStyle = "classic",
 }: {
   carousels: CarouselConfig[];
+  cardStyle?: "classic" | "modern" | "minimal";
 }) {
   return (
     <>
@@ -43,14 +45,14 @@ export function ProductCarouselSection({
               </Button>
             )}
           </div>
-          <Carousel className="w-full">
+          <Carousel className="w-full" opts={{ align: "start", slidesToScroll: "auto" }}>
             <CarouselContent className="-ml-4">
               {carousel.products.map((product) => (
                 <CarouselItem
                   key={product.id}
                   className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3 xl:basis-1/4"
                 >
-                  <ProductCard product={product} />
+                  <ProductCard product={product} cardStyle={cardStyle} />
                 </CarouselItem>
               ))}
             </CarouselContent>

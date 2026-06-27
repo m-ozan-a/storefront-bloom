@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getPage } from "@/lib/owuan";
-import { getStorefrontManifest } from "@/lib/owuan/manifest";
+import { getPage } from "@/actions";
+import { getStorefrontManifest } from "@/actions";
 import { ContactPage } from "@/components/contact/contact-page";
 
 interface PageProps {

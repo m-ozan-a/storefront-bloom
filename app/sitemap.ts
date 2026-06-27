@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getManifest, getProducts, getPages } from "@/lib/owuan";
+import { getManifest, getProducts, getPages } from "@/actions";
 import { headers } from "next/headers";
 
 async function getDomainHeaders(): Promise<Record<string, string>> {

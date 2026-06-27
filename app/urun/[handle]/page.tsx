@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getProduct } from '@/lib/owuan';
+import { getProduct } from '@/actions';
 import type { Product } from '@/lib/owuan/types';
-import { getStorefrontManifest } from '@/lib/owuan/manifest';
-import { getCrossSell, filterByCampaign, type SlimProduct } from '@/lib/cross-sell';
+import { getStorefrontManifest } from '@/actions';
+import { getCrossSell, filterByCampaign, type SlimProduct } from '@/actions';
 import { ProductGallery, ProductInfo } from '@/components/product';
 import { CrossSellGrid, RecommendationGrid } from '@/components/product/cross-sell-section';
 

@@ -12,11 +12,17 @@ const WishlistDrawer = dynamic(
   { ssr: false }
 );
 
+const AuthPromptDialog = dynamic(
+  () => import("@/components/auth-prompt-dialog").then((mod) => ({ default: mod.AuthPromptDialog })),
+  { ssr: false }
+);
+
 export function ClientDrawers() {
   return (
     <>
       <CartDrawer />
       <WishlistDrawer />
+      <AuthPromptDialog />
     </>
   );
 }

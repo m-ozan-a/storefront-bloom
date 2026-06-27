@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getStorefrontManifest } from '@/lib/owuan/manifest';
+import { getStorefrontManifest } from '@/actions';
 import { cn } from '@/lib/utils';
 
 interface CollectionSidebarProps {

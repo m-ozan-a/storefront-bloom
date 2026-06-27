@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 
 export interface FilterOptions {
@@ -81,8 +80,8 @@ export function FilterPanel({ options }: { options: FilterOptions }) {
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent className="flex w-[340px] flex-col sm:max-w-[340px]" side="right">
-        <SheetHeader className="shrink-0">
+      <SheetContent className="flex w-full flex-col px-6 py-6 sm:max-w-md" side="right">
+        <SheetHeader className="shrink-0 border-b border-border pb-4">
           <div className="flex items-center justify-between">
             <SheetTitle className="text-lg">Filtreler</SheetTitle>
             {activeFilterCount > 0 && (
@@ -94,7 +93,6 @@ export function FilterPanel({ options }: { options: FilterOptions }) {
         </SheetHeader>
 
         <div className="flex-1 space-y-1 overflow-y-auto py-4">
-          <Separator />
 
           {/* Category */}
           {options.categories.length > 0 && (
@@ -116,7 +114,6 @@ export function FilterPanel({ options }: { options: FilterOptions }) {
                   ))}
                 </div>
               </FilterSection>
-              <Separator />
             </>
           )}
 
@@ -140,7 +137,6 @@ export function FilterPanel({ options }: { options: FilterOptions }) {
                   ))}
                 </div>
               </FilterSection>
-              <Separator />
             </>
           )}
 
@@ -174,7 +170,6 @@ export function FilterPanel({ options }: { options: FilterOptions }) {
               </Button>
             </div>
           </FilterSection>
-          <Separator />
 
           {/* Size */}
           {options.sizes.length > 0 && (
@@ -200,7 +195,6 @@ export function FilterPanel({ options }: { options: FilterOptions }) {
                   })}
                 </div>
               </FilterSection>
-              <Separator />
             </>
           )}
 
@@ -224,13 +218,12 @@ export function FilterPanel({ options }: { options: FilterOptions }) {
                   ))}
                 </div>
               </FilterSection>
-              <Separator />
             </>
           )}
         </div>
 
         {/* Apply button at bottom */}
-        <div className="shrink-0 pt-2">
+        <div className="shrink-0 border-t border-border pt-4">
           <Button className="w-full" onClick={() => setOpen(false)} size="sm">
             Sonuçları Göster
           </Button>

@@ -7,7 +7,7 @@ import {
   useCallback,
   ReactNode,
 } from "react";
-import { signIn as apiSignIn, signUp as apiSignUp, getMe } from "@/lib/owuan/client";
+import { signIn as apiSignIn, signUp as apiSignUp, getMe } from "@/actions";
 
 export interface User {
   id: string;

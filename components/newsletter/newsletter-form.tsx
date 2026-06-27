@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { Loader2, Check, AlertCircle } from "lucide-react";
-import { subscribeToNewsletter } from "@/lib/owuan";
+import { subscribeToNewsletter } from "@/actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 

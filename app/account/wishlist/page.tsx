@@ -16,9 +16,9 @@ import {
   getFavorites,
   removeFavorite,
   type FavoriteItem,
-} from '@/lib/owuan/client';
+} from '@/actions';
 import { useCartStore } from '@/lib/owuan/stores';
-import { formatPrice } from '@/lib/owuan';
+import { formatPrice } from '@/actions';
 import { Button } from '@/components/ui/button';
 
 export default function WishlistPage() {

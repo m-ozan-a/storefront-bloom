@@ -261,11 +261,22 @@ export function addToCart(
   variantId: string,
   quantity = 1
 ): Cart {
-  const variant = product.variants.find((v) => v.id === variantId);
+  // Varyantsız ürünlerde gerçek varyant yok → ürünün kendisini synthetic varyant olarak kullan.
+  const variant =
+    product.variants.find((v) => v.id === variantId) ??
+    (product.variants.length === 0
+      ? {
+          id: product.id,
+          title: product.title,
+          availableForSale: product.availableForSale,
+          selectedOptions: [],
+          price: product.priceRange.minVariantPrice,
+        }
+      : undefined);
   if (!variant) return cart;
 
   const existingLineIndex = cart.lines.findIndex(
-    (line) => line.merchandise.id === variantId
+    (line) => line.merchandise.id === variant.id
   );
 
   let newLines: CartItem[];
@@ -298,7 +309,7 @@ export function addToCart(
         },
       },
       merchandise: {
-        id: variantId,
+        id: variant.id,
         title: variant.title,
         selectedOptions: variant.selectedOptions,
         product,

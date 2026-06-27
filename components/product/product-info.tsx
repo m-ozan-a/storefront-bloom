@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, Minus, Plus, Share2, Truck, RotateCcw, Shield, Loader2, AlertCircle } from 'lucide-react';
+import { Heart, Minus, Plus, Truck, RotateCcw, Shield, Loader2, AlertCircle } from 'lucide-react';
 import type { Product } from '@/lib/owuan/types';
-import { formatPrice } from '@/lib/owuan';
+import { formatPrice } from '@/actions';
 import { useCartStore, useWishlistStore } from '@/lib/owuan/stores';
+import { useAuth } from '@/components/auth';
+import { useAuthPrompt } from '@/components/auth-prompt-dialog';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -26,7 +28,11 @@ export function ProductInfo({ product }: ProductInfoProps) {
 
   const { addItem, isLoading, error, clearError } = useCartStore();
   const { isInWishlist, addItem: addToWishlist, removeItem: removeFromWishlist } = useWishlistStore();
-  const isWishlisted = isInWishlist(product.id);
+  const { user } = useAuth();
+  const { openPrompt } = useAuthPrompt();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isWishlisted = mounted && isInWishlist(product.id);
 
   const selectedVariant = product.variants.find((variant) =>
     variant.selectedOptions.every(
@@ -39,13 +45,19 @@ export function ProductInfo({ product }: ProductInfoProps) {
     ? parseFloat(selectedVariant.compareAtPrice.amount)
     : null;
 
+  const hasVariants = product.variants.length > 0;
+  const inStock = selectedVariant ? selectedVariant.availableForSale : product.availableForSale;
+
   const handleAddToCart = async () => {
-    if (selectedVariant) {
-      await addItem(product, selectedVariant.id, quantity);
-    }
+    if (hasVariants && !selectedVariant) return;
+    await addItem(product, selectedVariant?.id ?? '', quantity);
   };
 
   const handleWishlistToggle = async () => {
+    if (!user) {
+      openPrompt();
+      return;
+    }
     if (isWishlisted) {
       await removeFromWishlist(product.id);
     } else {
@@ -57,7 +69,9 @@ export function ProductInfo({ product }: ProductInfoProps) {
     <div className="flex flex-col gap-6">
       {/* Brand & Title */}
       <div>
-        <p className="text-sm text-muted-foreground">{product.brand}</p>
+        {product.brand && !/^\d+$/.test(product.brand) ? (
+          <p className="text-sm text-muted-foreground">{product.brand}</p>
+        ) : null}
         <h1 className="mt-1 text-2xl font-semibold text-foreground md:text-3xl">
           {product.title}
         </h1>
@@ -192,11 +206,11 @@ export function ProductInfo({ product }: ProductInfoProps) {
         <Button
           onClick={handleAddToCart}
           className="flex-1 h-12 text-base"
-          disabled={!selectedVariant?.availableForSale || isLoading}
+          disabled={!inStock || isLoading}
         >
           {isLoading ? (
             <Loader2 className="h-5 w-5 animate-spin" />
-          ) : selectedVariant?.availableForSale ? (
+          ) : inStock ? (
             'Sepete Ekle'
           ) : (
             'Stokta Yok'
@@ -209,9 +223,6 @@ export function ProductInfo({ product }: ProductInfoProps) {
           onClick={handleWishlistToggle}
         >
           <Heart className={cn('h-5 w-5', isWishlisted && 'fill-current')} />
-        </Button>
-        <Button variant="outline" size="icon" className="h-12 w-12">
-          <Share2 className="h-5 w-5" />
         </Button>
       </div>
 

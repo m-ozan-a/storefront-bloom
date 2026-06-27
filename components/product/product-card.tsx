@@ -1,11 +1,14 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, ShoppingBag } from 'lucide-react';
 import type { Product } from '@/lib/owuan/types';
-import { formatPrice } from '@/lib/owuan';
+import { formatPrice } from '@/actions';
 import { useWishlistStore } from '@/lib/owuan/stores';
+import { useAuth } from '@/components/auth';
+import { useAuthPrompt } from '@/components/auth-prompt-dialog';
 import { cn } from '@/lib/utils';
 
 interface ProductCardProps {
@@ -16,7 +19,11 @@ interface ProductCardProps {
 
 export function ProductCard({ product, priority = false, cardStyle = "classic" }: ProductCardProps) {
   const { isInWishlist, addItem, removeItem } = useWishlistStore();
-  const isWishlisted = isInWishlist(product.id);
+  const { user } = useAuth();
+  const { openPrompt } = useAuthPrompt();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isWishlisted = mounted && isInWishlist(product.id);
 
   const price = parseFloat(product.priceRange.minVariantPrice.amount);
   const originalPrice = product.discount
@@ -27,6 +34,10 @@ export function ProductCard({ product, priority = false, cardStyle = "classic" }
   const handleWishlistClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!user) {
+      openPrompt();
+      return;
+    }
     if (isWishlisted) {
       removeItem(product.id);
     } else {
@@ -100,7 +111,7 @@ export function ProductCard({ product, priority = false, cardStyle = "classic" }
           <button
             onClick={handleWishlistClick}
             className={cn(
-              'absolute right-3 flex h-9 w-9 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm transition-all hover:bg-background',
+              'absolute right-3 flex h-9 w-9 items-center justify-center rounded-(--radius) bg-background/80 backdrop-blur-sm transition-all hover:bg-background',
               badgeImage ? 'top-16 sm:top-[4.5rem]' : 'top-3',
               isWishlisted && 'text-rose-600'
             )}
@@ -118,7 +129,9 @@ export function ProductCard({ product, priority = false, cardStyle = "classic" }
             <h3 className="text-sm font-medium text-white line-clamp-1">
               {product.title}
             </h3>
-            <p className="text-xs text-white/70">{product.brand}</p>
+            {product.brand && !/^\d+$/.test(product.brand) ? (
+              <p className="text-xs text-white/70">{product.brand}</p>
+            ) : null}
             <span className="text-sm font-semibold text-white">
               {formatPrice(product.priceRange.minVariantPrice.amount)}
             </span>
@@ -139,9 +152,9 @@ export function ProductCard({ product, priority = false, cardStyle = "classic" }
           <h3 className="text-sm font-medium text-foreground line-clamp-1">
             {product.title}
           </h3>
-          {cardStyle === "classic" && (
+          {cardStyle === "classic" && product.brand && !/^\d+$/.test(product.brand) ? (
             <p className="text-xs text-muted-foreground">{product.brand}</p>
-          )}
+          ) : null}
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-foreground">
               {formatPrice(product.priceRange.minVariantPrice.amount)}

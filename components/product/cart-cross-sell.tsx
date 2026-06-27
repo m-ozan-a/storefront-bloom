@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getCrossSell, filterByCampaign, type CrossSellItem } from '@/lib/cross-sell';
+import { getCrossSell, filterByCampaign, type CrossSellItem } from '@/actions';
 import { SlimProductCard } from './cross-sell-section';
 
 export function CartCrossSell({

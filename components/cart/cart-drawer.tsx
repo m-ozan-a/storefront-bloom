@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { X, Minus, Plus, ShoppingBag, Loader2, AlertCircle } from 'lucide-react';
 import { useCartStore } from '@/lib/owuan/stores';
-import { formatPrice } from '@/lib/owuan';
+import { formatPrice } from '@/actions';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -32,7 +32,7 @@ export function CartDrawer() {
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && closeCart()}>
-      <SheetContent className="flex w-full flex-col sm:max-w-md">
+      <SheetContent className="flex w-full flex-col px-6 py-6 sm:max-w-md">
         <SheetHeader className="border-b border-border pb-4">
           <SheetTitle className="flex items-center gap-2 text-lg font-semibold">
             <ShoppingBag className="h-5 w-5" />

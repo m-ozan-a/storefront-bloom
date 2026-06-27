@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Minus, Plus, Trash2, ShoppingBag, Loader2 } from 'lucide-react';
 import { useCartStore } from '@/lib/owuan/stores';
-import { formatPrice } from '@/lib/owuan';
+import { formatPrice } from '@/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';

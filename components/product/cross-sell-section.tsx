@@ -1,8 +1,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ShoppingBag } from 'lucide-react';
-import { formatPrice } from '@/lib/owuan';
-import type { CrossSellItem, SlimProduct } from '@/lib/cross-sell';
+import { formatPrice } from '@/actions';
+import type { CrossSellItem, SlimProduct } from '@/actions';
 
 export function SlimProductCard({
   product,

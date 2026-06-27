@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
-import { HeroSection } from '@/components/sections/hero';
+import { HeroCarousel } from '@/components/sections/hero-carousel';
+import { PromoBannersDuo, PromoBannerWide } from '@/components/sections/promo-banners';
 import { CategoryGridSection, type CategoryGridItem } from '@/components/sections/category-grid';
 import { TrustBadgesSection, type TrustBadgeItem } from '@/components/sections/trust-badges';
 import { NewsletterSignupSection } from '@/components/sections/newsletter-signup';
@@ -21,34 +22,37 @@ export interface PageShellData {
   products: Product[];
 }
 
-// Wrapper adı → sabit gerçek component. Spec YORUMLANMAZ (json-render storefront'ta yok).
-// Veri manifest'ten gelir; veri yoksa skeleton ile yeri tutulur. footer/header layout chrome.
-function renderWrapper(name: string, data: PageShellData) {
+function renderWrapper(name: string, data: PageShellData, cardStyle: "classic" | "modern" | "minimal") {
   switch (name) {
     case 'hero':
       return (
-        <HeroSection
-          data={{
-            heading: data.storeName
-              ? `${data.storeName} dünyasına hoş geldiniz`
-              : 'Yeni Sezon Koleksiyonu',
-            subheading: data.storeDescription || 'Özenle seçilmiş ürünler, uygun fiyatlar ve hızlı teslimat.',
-            ctaText: 'Alışverişe Başla',
-            ctaUrl: '/search',
-          }}
-        />
+        <>
+          <HeroCarousel />
+          {data.products.length > 0 ? (
+            <ProductCarouselSection
+              carousels={[{ title: 'Popüler Ürünler', products: data.products }]}
+              cardStyle={cardStyle}
+            />
+          ) : (
+            <WrapperSkeleton kind="product-showcase" />
+          )}
+          <PromoBannersDuo />
+        </>
       );
 
     case 'category-banners':
       return data.categories.length > 0 ? (
-        <CategoryGridSection data={{ title: 'Kategoriler', categories: data.categories }} />
+        <>
+          <CategoryGridSection data={{ title: 'Kategoriler', columns: '3', categories: data.categories }} />
+          <PromoBannerWide />
+        </>
       ) : (
         <WrapperSkeleton kind="category-banners" />
       );
 
     case 'product-showcase':
       return data.products.length > 0 ? (
-        <ProductCarouselSection carousels={[{ title: 'Yeni Gelenler', products: data.products }]} />
+        <ProductCarouselSection carousels={[{ title: 'Yeni Gelenler', products: data.products }]} cardStyle={cardStyle} />
       ) : (
         <WrapperSkeleton kind="product-showcase" />
       );
@@ -74,11 +78,11 @@ function renderWrapper(name: string, data: PageShellData) {
   }
 }
 
-export function PageShell({ wrappers, data }: { wrappers: string[]; data: PageShellData }) {
+export function PageShell({ wrappers, data, cardStyle = "classic" }: { wrappers: string[]; data: PageShellData; cardStyle?: "classic" | "modern" | "minimal" }) {
   return (
     <main>
       {wrappers.map((name) => (
-        <Fragment key={name}>{renderWrapper(name, data)}</Fragment>
+        <Fragment key={name}>{renderWrapper(name, data, cardStyle)}</Fragment>
       ))}
     </main>
   );

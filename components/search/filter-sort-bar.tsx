@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
-import { sorting } from "@/lib/owuan";
+import { sorting } from "@/actions";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
