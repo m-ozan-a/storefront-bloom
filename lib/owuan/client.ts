@@ -1,6 +1,8 @@
 // Owuan Storefront API Client
 // All requests go through /api/proxy/[...] to keep OWUAN_STORE_API_KEY server-only
 
+import { getStorefrontManifest } from "./manifest";
+
 // Server-side: call owuan API directly (API key available)
 // Client-side: go through /api/proxy to keep API key server-only
 
@@ -125,8 +127,27 @@ export async function getProductById(_id: string): Promise<Product | undefined> 
   return undefined; // Not implemented — use getProduct(handle) instead
 }
 
-export async function getProductRecommendations(_productId: string): Promise<Product[]> {
-  return proxyFetch<Product[]>(`/storefront/products?limit=4`);
+// Öneriler statik R2'den: recommendations/product-{uid}.json → UID'ler products.json'dan eşlenir.
+export async function getProductRecommendations(productUid: string): Promise<Product[]> {
+  const { getStaticProductRows, rowToProduct } = await import("./static-products");
+  const { storefrontDataUrl } = await import("./manifest");
+  try {
+    const res = await fetch(storefrontDataUrl(`recommendations/product-${productUid}.json`), {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return [];
+    const recs = (await res.json()) as { type: string; productUid: string; rank: number }[];
+    if (!Array.isArray(recs) || recs.length === 0) return [];
+    const rows = await getStaticProductRows();
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    return recs
+      .sort((a, b) => a.rank - b.rank)
+      .map((rec) => byId.get(rec.productUid))
+      .filter((r): r is NonNullable<typeof r> => !!r)
+      .map(rowToProduct);
+  } catch {
+    return [];
+  }
 }
 
 // ---- Manifest ----
@@ -247,14 +268,37 @@ export async function getNavTree(handle: "header" | "footer"): Promise<import(".
 }
 
 // ---- Pages ----
+// Tek kaynak: R2 manifest (pages[].content). API'ye gidilmez; içerik değişimi
+// R2 republish ile yayınlanır. uid/createdAt manifest'te yok — slug/manifest
+// updatedAt ile doldurulur, tüketiciler bu alanları kullanmaz.
+
+function manifestPageToPage(
+  p: NonNullable<Awaited<ReturnType<typeof getStorefrontManifest>>>["pages"][number],
+  manifestUpdatedAt: number | undefined,
+): Page {
+  const updatedAt = manifestUpdatedAt ? new Date(manifestUpdatedAt).toISOString() : "";
+  return {
+    uid: p.slug,
+    slug: p.slug,
+    title: p.title,
+    content: p.content ?? "",
+    metaTitle: p.metaTitle ?? "",
+    metaDescription: p.metaDescription ?? "",
+    isPublished: p.isPublished !== false,
+    createdAt: updatedAt,
+    updatedAt,
+  };
+}
 
 export async function getPage(slug: string): Promise<Page | null> {
-  return proxyFetch<Page>(`/storefront/pages/${slug}`);
+  const m = await getStorefrontManifest();
+  const p = m?.pages?.find((x) => x.slug === slug);
+  return p ? manifestPageToPage(p, m?.updatedAt) : null;
 }
 
 export async function getPages(): Promise<Page[]> {
-  const data = await proxyFetch<Page[]>("/storefront/pages");
-  return Array.isArray(data) ? data : [];
+  const m = await getStorefrontManifest();
+  return (m?.pages ?? []).map((p) => manifestPageToPage(p, m?.updatedAt));
 }
 
 // ---- Newsletter ----
@@ -343,6 +387,8 @@ export async function removeCartItemApi(
 export interface GuestCheckoutData {
   email: string; fullName: string; phone: string;
   address: { title: string; address: string; city: string; state: string; zip: string; country: string };
+  // Misafir sepeti lokalde tutulur; sunucu stok/fiyat/KDV doğrulamasını bu listeyle yapar (schema: zorunlu, minItems 1).
+  items: { variantId: string; quantity: number }[];
   note?: string; paymentProvider?: string; deliveryOptionId?: string;
 }
 
@@ -462,8 +508,37 @@ export async function getPaymentStatus(orderId: string): Promise<{ status: strin
 
 // ---- Carrier Rates ----
 
-export async function getCarrierRates(data: { gatewayUid: string; items: unknown[]; price: number }) {
-  return proxyFetch("/storefront/checkout/carrier/rates", { method: "POST", body: data });
+export interface CarrierRate {
+  service?: string;
+  name?: string;
+  price?: number;
+  totalPrice?: number;
+}
+
+// "calculated" fiyatlı kargolar için anlık fiyat sorgusu. Yanıt sağlayıcıya göre
+// değişebildiğinden toleranslı parse edilir; hata/boş yanıt null döner.
+export async function getCarrierRates(data: {
+  gatewayUid: string;
+  items: { variantId: string; quantity: number }[];
+  price: number;
+}): Promise<number | null> {
+  try {
+    const res = await proxyFetch<CarrierRate[] | { rates?: CarrierRate[] } | CarrierRate>(
+      "/storefront/checkout/carrier/rates",
+      { method: "POST", body: data }
+    );
+    const rates: CarrierRate[] = Array.isArray(res)
+      ? res
+      : Array.isArray((res as { rates?: CarrierRate[] }).rates)
+        ? (res as { rates: CarrierRate[] }).rates
+        : [res as CarrierRate];
+    const prices = rates
+      .map((r) => r.price ?? r.totalPrice)
+      .filter((p): p is number => typeof p === "number" && p >= 0);
+    return prices.length > 0 ? Math.min(...prices) : null;
+  } catch {
+    return null;
+  }
 }
 
 // ---- Addresses ----
@@ -598,4 +673,211 @@ export async function removeFavorite(productUid: string): Promise<void> {
   try {
     await proxyFetch(`/storefront/favorites/${productUid}`, { method: "DELETE" });
   } catch {}
+}
+
+// ---- Reviews ----
+
+export interface ReviewItem {
+  id: string;
+  rating: number;
+  title: string | null;
+  body: string | null;
+  isVerifiedPurchase: boolean;
+  userName: string;
+  createdAt: string | number;
+}
+
+export interface ReviewsData {
+  reviews: ReviewItem[];
+  averageRating: number;
+  totalCount: number;
+}
+
+// Yorumlar statik R2'den (sadece onaylılar publish edilir); yorum YAZMA dinamik API'de kalır.
+// Statik snapshot henüz publish edilmemişse (404) dinamik API'ye düşer — GET için JWT gerekmez,
+// üye olmayanlar da yorumları görür.
+export async function getReviews(productUid: string): Promise<ReviewsData> {
+  try {
+    const { storefrontDataUrl } = await import("./manifest");
+    const res = await fetch(storefrontDataUrl(`reviews/product-${productUid}.json`), {
+      next: { revalidate: 3600 },
+    });
+    if (res.ok) return (await res.json()) as ReviewsData;
+  } catch {}
+  try {
+    const data = await proxyFetch<ReviewsData>(`/storefront/products/${productUid}/reviews`);
+    // KVKK: statik snapshot'ta maskeleme publish tarafında yapılıyor; dinamik API tam isim
+    // dönerse burada maskele ("Elif Şahin" → "Elif Ş.")
+    return {
+      ...data,
+      reviews: data.reviews.map((r) => ({ ...r, userName: maskUserName(r.userName) })),
+    };
+  } catch {
+    return { reviews: [], averageRating: 0, totalCount: 0 };
+  }
+}
+
+function maskUserName(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length < 2) return name;
+  const last = parts[parts.length - 1];
+  return `${parts.slice(0, -1).join(" ")} ${last.charAt(0).toLocaleUpperCase("tr")}.`;
+}
+
+export async function submitReview(
+  productUid: string,
+  data: { rating: number; title?: string; body?: string }
+): Promise<{ id: string }> {
+  return proxyFetch<{ id: string }>(`/storefront/products/${productUid}/reviews`, {
+    method: "POST",
+    body: data,
+  });
+}
+
+// ---- Coupon ----
+
+export interface CouponApplyResult {
+  applied: boolean;
+  discountPercent: number | null;
+  discountAmount: number | null;
+  message?: string;
+  campaign: { uid?: string; title?: string; campaignType?: string; couponCode?: string };
+}
+
+export async function applyCoupon(code: string): Promise<CouponApplyResult> {
+  return proxyFetch<CouponApplyResult>("/storefront/cart/coupon", {
+    method: "POST",
+    body: { code },
+  });
+}
+
+// ---- Gift Card ----
+
+export interface GiftCardApplyResult {
+  applied: boolean;
+  amount: number;
+  newBalance: number;
+  message?: string;
+}
+
+export async function applyGiftCard(code: string): Promise<GiftCardApplyResult> {
+  return proxyFetch<GiftCardApplyResult>("/storefront/cart/gift-card", {
+    method: "POST",
+    body: { code },
+  });
+}
+
+// ---- Returns / Order Cancel ----
+
+export interface ReturnListItem {
+  id: string;
+  orderId: string;
+  orderUid: string;
+  reason: string;
+  status: string;
+  resolutionType: string | null;
+  refundedAmount: number | null;
+  createdAt: string;
+}
+
+export interface ReturnDetailItemInfo {
+  orderItemId: string;
+  quantity: number;
+  inspectionStatus: string;
+  resolvedAmount: number | null;
+  product: { uid: string; title: string; slug: string };
+}
+
+export interface ReturnDetailData {
+  id: string;
+  orderId: string;
+  orderUid: string;
+  reason: string;
+  customerNote: string | null;
+  adminNote: string | null;
+  status: string;
+  trackingNumber: string | null;
+  resolutionType: string | null;
+  refundedAmount: number | null;
+  createdAt: string;
+  updatedAt: string | null;
+  items: ReturnDetailItemInfo[];
+}
+
+export async function getReturns(): Promise<ReturnListItem[]> {
+  try {
+    return await proxyFetch<ReturnListItem[]>("/storefront/returns");
+  } catch {
+    return [];
+  }
+}
+
+export async function getReturnDetail(id: string): Promise<ReturnDetailData | null> {
+  try {
+    return await proxyFetch<ReturnDetailData>(`/storefront/returns/${id}`);
+  } catch {
+    return null;
+  }
+}
+
+export async function initiateReturn(
+  orderUid: string,
+  data: {
+    reason: string;
+    customerNote?: string;
+    items: { orderItemId: string; quantity: number }[];
+  }
+): Promise<{ id: string }> {
+  return proxyFetch<{ id: string }>(`/storefront/orders/${orderUid}/return`, {
+    method: "POST",
+    body: data,
+  });
+}
+
+export async function cancelOrder(orderUid: string): Promise<void> {
+  await proxyFetch(`/storefront/orders/${orderUid}/cancel`, { method: "POST" });
+}
+
+// ---- Password / Account ----
+
+export async function forgotPassword(email: string): Promise<{ message?: string }> {
+  return proxyFetch<{ message?: string }>("/storefront/auth/forgot-password", {
+    method: "POST",
+    body: { email },
+  });
+}
+
+export async function resetPassword(token: string, password: string): Promise<{ message?: string }> {
+  return proxyFetch<{ message?: string }>("/storefront/auth/reset-password", {
+    method: "POST",
+    body: { token, password },
+  });
+}
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<{ message?: string }> {
+  return proxyFetch<{ message?: string }>("/storefront/auth/change-password", {
+    method: "POST",
+    body: { currentPassword, newPassword },
+  });
+}
+
+export async function deleteAccount(): Promise<{ message?: string }> {
+  return proxyFetch<{ message?: string }>("/storefront/auth/me", { method: "DELETE" });
+}
+
+// ---- Contact ----
+
+export interface ContactInput {
+  name: string;
+  email: string;
+  phone?: string;
+  subject?: string;
+  message: string;
+}
+
+export async function submitContact(data: ContactInput): Promise<{ id: string }> {
+  return proxyFetch<{ id: string }>("/storefront/contact", { method: "POST", body: data });
 }

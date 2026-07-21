@@ -5,7 +5,7 @@ import { useFilterParams } from "@/hooks/use-filter-params";
 import { Button } from "@/components/ui/button";
 
 export function ActiveFilters() {
-  const { filters, clearAllFilters, setFilter } = useFilterParams();
+  const { filters, clearAllFilters, setFilter, toggleOptionFilter } = useFilterParams();
 
   const chips: { key: string; label: string; onRemove: () => void }[] = [];
 
@@ -54,32 +54,14 @@ export function ActiveFilters() {
     });
   }
 
-  for (const s of filters.size) {
-    chips.push({
-      key: `size-${s}`,
-      label: s,
-      onRemove: () =>
-        setFilter(
-          "size",
-          filters.size.filter((x) => x !== s).length > 0
-            ? filters.size.filter((x) => x !== s)
-            : null
-        ),
-    });
-  }
-
-  for (const c of filters.color) {
-    chips.push({
-      key: `color-${c}`,
-      label: c,
-      onRemove: () =>
-        setFilter(
-          "color",
-          filters.color.filter((x) => x !== c).length > 0
-            ? filters.color.filter((x) => x !== c)
-            : null
-        ),
-    });
+  for (const [name, vals] of Object.entries(filters.options)) {
+    for (const val of vals) {
+      chips.push({
+        key: `opt-${name}-${val}`,
+        label: `${name}: ${val}`,
+        onRemove: () => toggleOptionFilter(name, val),
+      });
+    }
   }
 
   if (chips.length === 0) return null;
@@ -102,7 +84,7 @@ export function ActiveFilters() {
         </span>
       ))}
       <Button className="h-7 px-2 text-xs" onClick={clearAllFilters} size="sm" variant="ghost">
-        Clear all
+        Tümünü Temizle
       </Button>
     </div>
   );

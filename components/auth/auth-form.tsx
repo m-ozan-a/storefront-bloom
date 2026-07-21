@@ -103,6 +103,16 @@ export function AuthForm({ mode }: AuthFormProps) {
               )}
             </button>
           </div>
+          {mode === 'signin' && (
+            <div className="text-right">
+              <Link
+                href="/account/forgot-password"
+                className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+              >
+                Şifremi Unuttum
+              </Link>
+            </div>
+          )}
         </div>
 
         {error && (

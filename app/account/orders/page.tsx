@@ -62,7 +62,7 @@ export default function OrdersPage() {
 
   if (!mounted || authLoading) {
     return (
-      <main className="container mx-auto px-4 pt-32 pb-16">
+      <main className="container mx-auto px-4 pt-8 pb-16">
         <div className="flex h-96 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-foreground border-t-transparent" />
         </div>
@@ -73,7 +73,7 @@ export default function OrdersPage() {
   if (!user) return null;
 
   return (
-    <main className="container mx-auto px-4 pt-32 pb-16">
+    <main className="container mx-auto px-4 pt-8 pb-16">
       <Link
         href="/account"
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"

@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, ShoppingBag, Lock, Loader2, CreditCard, Truck, Shield, Gift, Minus, Plus, Trash2 } from 'lucide-react';
 import { useCartStore } from '@/lib/owuan/stores';
 import { useAuth } from '@/components/auth';
-import { formatPrice, guestCheckout, memberCheckout, initPayment, getManifest, getCart, type ServerCart } from '@/actions';
+import { formatPrice, guestCheckout, memberCheckout, initPayment, getManifest, getCart, getAddresses, getCarrierRates, type ServerCart, type AddressItem } from '@/actions';
 import type { ManifestPaymentGateway, ManifestCarrierGateway, ManifestStore } from '@/lib/owuan/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +36,9 @@ export default function CheckoutPage() {
   const [selectedCarrier, setSelectedCarrier] = useState('');
   const [store, setStore] = useState<ManifestStore | null>(null);
   const [serverCart, setServerCart] = useState<ServerCart | null>(null);
+  const [addresses, setAddresses] = useState<AddressItem[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState('');
+  const [calculatedRates, setCalculatedRates] = useState<Record<string, number | null>>({});
 
   // Guest form
   const [guestEmail, setGuestEmail] = useState('');
@@ -52,6 +55,16 @@ export default function CheckoutPage() {
     if (user) setCheckoutMode('member');
   }, [user]);
 
+  // Üye: kayıtlı adresleri yükle, varsayılanı seç (schema addressId'yi zorunlu tutar)
+  useEffect(() => {
+    if (!user) return;
+    getAddresses().then((list) => {
+      setAddresses(list);
+      const preferred = list.find((a) => a.isDefault) ?? list[0];
+      if (preferred) setSelectedAddressId((cur) => cur || preferred.uid);
+    }).catch(() => {});
+  }, [user]);
+
   useEffect(() => {
     if (mounted) fetchCart();
   }, [mounted, fetchCart]);
@@ -61,13 +74,33 @@ export default function CheckoutPage() {
       setPaymentGateways(m.paymentGateways || []);
       setCarrierGateways(m.carrierGateways || []);
       setStore(m.store || null);
+      // Mağaza misafir alışverişi kapattıysa misafir modu kullanılamaz
+      if (m.store && m.store.allowGuestCheckout === false) setCheckoutMode('member');
     }).catch(() => {});
     getCart().then((c) => { if (c) setServerCart(c); }).catch(() => {});
   }, []);
 
+  const guestAllowed = store?.allowGuestCheckout !== false;
+
+  const cartItems = cart.lines.map((l) => ({
+    variantId: l.merchandise.id || l.merchandise.product.id,
+    quantity: l.quantity,
+  }));
+
+  // "calculated" fiyatlı kargo seçilince anlık fiyat sorgula (bir kez, gateway başına)
+  useEffect(() => {
+    if (!selectedCarrier) return;
+    const gw = carrierGateways.find((g) => g.uid === selectedCarrier);
+    if (!gw || gw.pricingType !== 'calculated' || selectedCarrier in calculatedRates) return;
+    const price = serverCart?.total ?? parseFloat(cart.cost.totalAmount.amount);
+    getCarrierRates({ gatewayUid: selectedCarrier, items: cartItems, price })
+      .then((rate) => setCalculatedRates((prev) => ({ ...prev, [selectedCarrier]: rate })));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCarrier, carrierGateways]);
+
   if (!mounted) {
     return (
-      <main className="container mx-auto px-4 pt-32 pb-16">
+      <main className="w-full px-5 py-5">
         <div className="flex h-96 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -77,7 +110,7 @@ export default function CheckoutPage() {
 
   if (cart.lines.length === 0) {
     return (
-      <main className="container mx-auto px-4 pt-32 pb-16">
+      <main className="w-full px-5 py-5">
         <div className="flex min-h-[50vh] flex-col items-center justify-center text-center">
           <ShoppingBag className="h-16 w-16 text-muted-foreground/50" />
           <h1 className="mt-6 text-2xl font-serif font-bold text-foreground">Sepetiniz boş</h1>
@@ -107,7 +140,7 @@ export default function CheckoutPage() {
 
   // Adım geçiş doğrulaması (eksik bilgiyle ilerleme yok → checkout patlamaz)
   const step1Valid = checkoutMode === 'member' ? !!user : !!(guestFullName && guestEmail && guestPhone);
-  const step2Valid = checkoutMode === 'member' ? true : !!(guestAddress && guestCity && guestState);
+  const step2Valid = checkoutMode === 'member' ? !!selectedAddressId : !!(guestAddress && guestCity && guestState);
 
   const canContinue = step === 1 ? step1Valid : step === 2 ? step2Valid : true;
 
@@ -119,11 +152,12 @@ export default function CheckoutPage() {
         ? await guestCheckout({
             email: guestEmail, fullName: guestFullName, phone: guestPhone,
             address: { title: 'Adresim', address: guestAddress, city: guestCity, state: guestState, zip: guestZip, country: '792' },
+            items: cartItems,
             note: orderNote || undefined,
             paymentProvider: selectedGateway || undefined,
             deliveryOptionId: selectedCarrier || undefined,
           })
-        : await memberCheckout('', orderNote || undefined, selectedGateway || undefined, selectedCarrier || undefined);
+        : await memberCheckout(selectedAddressId, orderNote || undefined, selectedGateway || undefined, selectedCarrier || undefined);
 
       if (selectedGateway && !isInternalPayment) {
         const payResult = await initPayment({
@@ -158,35 +192,41 @@ export default function CheckoutPage() {
   };
 
   return (
-    <main className="container mx-auto px-4 pt-32 pb-16">
+    <main className="w-full px-5 py-5">
       <Link href="/sepet" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" />
         Sepete Dön
       </Link>
 
-      <div className="mt-6 mb-8 text-center">
-        <h1 className="mb-2 text-3xl font-serif font-bold">Güvenli Ödeme</h1>
-        <p className="text-muted-foreground">Siparişinizi birkaç adımda tamamlayın</p>
+      <div className="mt-4 mb-5 text-center">
+        <h1 className="mb-1 text-2xl font-serif font-bold">Güvenli Ödeme</h1>
+        <p className="text-sm text-muted-foreground">Siparişinizi birkaç adımda tamamlayın</p>
       </div>
 
-      {/* Adım göstergesi */}
-      <div className="mb-8 flex justify-center">
-        <div className="flex items-center gap-2 sm:gap-4">
+      {/* Adım göstergesi — satırda sadece daire + çizgi var (hepsi 40px yüksek),
+          etiketler absolute; böylece çizgiler daire merkeziyle tam hizalı. */}
+      <div className="mb-10 flex justify-center">
+        <div className="flex items-center">
           {STEPS.map((label, i) => {
             const n = i + 1;
             return (
               <div key={label} className="flex items-center">
-                <div className="flex flex-col items-center gap-1">
+                <div className="relative flex flex-col items-center">
                   <div className={cn(
                     'flex size-10 items-center justify-center rounded-full text-sm font-medium transition-colors',
                     n <= step ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
                   )}>
                     {n}
                   </div>
-                  <span className="hidden text-xs text-muted-foreground sm:block">{label}</span>
+                  <span className={cn(
+                    'absolute top-full mt-1.5 whitespace-nowrap text-xs transition-colors',
+                    n <= step ? 'font-medium text-foreground' : 'text-muted-foreground'
+                  )}>
+                    {label}
+                  </span>
                 </div>
                 {n < STEPS.length ? (
-                  <div className={cn('mx-2 h-1 w-10 rounded transition-colors sm:w-16', n < step ? 'bg-primary' : 'bg-muted')} />
+                  <div className={cn('mx-2 h-0.5 w-10 rounded-full transition-colors sm:mx-3 sm:w-16', n < step ? 'bg-primary' : 'bg-muted')} />
                 ) : null}
               </div>
             );
@@ -194,7 +234,7 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-3">
+      <div className="grid gap-5 lg:grid-cols-3 lg:gap-8">
         {/* Form */}
         <div className="lg:col-span-2">
           <Card>
@@ -214,7 +254,7 @@ export default function CheckoutPage() {
               {/* Adım 1: İletişim */}
               {step === 1 ? (
                 <div className="flex flex-col gap-4">
-                  {!user ? (
+                  {!user && guestAllowed ? (
                     <div className="flex overflow-hidden rounded-lg border border-border">
                       <button
                         onClick={() => setCheckoutMode('guest')}
@@ -265,7 +305,28 @@ export default function CheckoutPage() {
               {step === 2 ? (
                 <div className="flex flex-col gap-4">
                   {checkoutMode === 'member' ? (
-                    <p className="text-sm text-muted-foreground">Teslimat hesabınızdaki varsayılan adrese yapılacaktır.</p>
+                    addresses.length > 0 ? (
+                      <div className="flex flex-col gap-3">
+                        {addresses.map((a) => (
+                          <label key={a.uid} className={cn('flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors', selectedAddressId === a.uid ? 'border-foreground bg-foreground/5' : 'border-border hover:border-muted-foreground')}>
+                            <input type="radio" name="memberAddress" value={a.uid} checked={selectedAddressId === a.uid} onChange={() => setSelectedAddressId(a.uid)} className="mt-1 size-4 accent-foreground" />
+                            <div className="flex-1 text-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{a.title || 'Adres'}</span>
+                                {a.isDefault ? <Badge variant="secondary" className="text-xs">Varsayılan</Badge> : null}
+                              </div>
+                              <p className="mt-1 text-muted-foreground">{a.address}, {a.state} / {a.city}</p>
+                            </div>
+                          </label>
+                        ))}
+                        <Link href="/account/addresses" className="text-sm text-muted-foreground underline hover:text-foreground">Yeni adres ekle</Link>
+                      </div>
+                    ) : (
+                      <div className="rounded-lg bg-secondary p-6 text-center">
+                        <p className="mb-4 text-sm text-muted-foreground">Kayıtlı adresiniz yok. Sipariş için önce bir teslimat adresi ekleyin.</p>
+                        <Button asChild variant="outline"><Link href="/account/addresses">Adres Ekle</Link></Button>
+                      </div>
+                    )
                   ) : (
                     <>
                       <div className="flex flex-col gap-2">
@@ -336,13 +397,21 @@ export default function CheckoutPage() {
                               <span className="text-sm font-medium">{gw.name}</span>
                               {gw.isPrimary ? <Badge variant="secondary" className="text-xs">Önerilen</Badge> : null}
                             </div>
-                            {gw.campaignLabel ? <span className="text-xs text-emerald-600">{gw.campaignLabel}</span> : null}
+                            {gw.campaignLabel ? <span className="text-xs font-medium text-primary">{gw.campaignLabel}</span> : null}
                           </div>
                           <span className="flex items-center gap-1.5 text-sm font-medium">
                             {gw.campaignDiscount && gw.campaignDiscount > 0 && gw.basePrice ? (
                               <span className="text-xs text-muted-foreground line-through">{formatPrice(gw.basePrice.toFixed(2))}</span>
                             ) : null}
-                            {gw.pricingType === 'calculated' ? 'Adımda hesaplanır' : carrierPrice(gw) === 0 ? 'Ücretsiz' : formatPrice(carrierPrice(gw).toFixed(2))}
+                            {gw.pricingType === 'calculated'
+                              ? (selectedCarrier === gw.uid && !(gw.uid in calculatedRates)
+                                  ? 'Hesaplanıyor…'
+                                  : typeof calculatedRates[gw.uid] === 'number'
+                                    ? formatPrice((calculatedRates[gw.uid] as number).toFixed(2))
+                                    : gw.uid in calculatedRates
+                                      ? 'Fiyat alınamadı'
+                                      : 'Seçince hesaplanır')
+                              : carrierPrice(gw) === 0 ? 'Ücretsiz' : formatPrice(carrierPrice(gw).toFixed(2))}
                           </span>
                         </label>
                       ))}
@@ -353,7 +422,7 @@ export default function CheckoutPage() {
                     <p className="text-sm text-muted-foreground">Ödeme ve kargo seçenekleri yükleniyor; siparişi tamamlayabilirsiniz.</p>
                   ) : null}
 
-                  {error ? <p className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p> : null}
+                  {error ? <p className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</p> : null}
                 </div>
               ) : null}
 
@@ -377,7 +446,7 @@ export default function CheckoutPage() {
 
         {/* Sipariş Özeti */}
         <div className="lg:col-span-1">
-          <Card className="sticky top-32">
+          <Card className="sticky top-5">
             <CardHeader>
               <CardTitle>Sipariş Özeti ({cart.totalQuantity} ürün)</CardTitle>
             </CardHeader>
@@ -385,14 +454,19 @@ export default function CheckoutPage() {
               <div className="flex flex-col gap-4">
                 {cart.lines.map((item) => (
                   <div key={item.id} className="flex gap-4">
-                    <Link href={`/urun/${item.merchandise.product.handle}`} className="relative size-16 flex-shrink-0 overflow-hidden rounded-lg bg-secondary">
-                      {item.merchandise.product.featuredImage ? (
-                        <Image src={item.merchandise.product.featuredImage.url} alt={item.merchandise.product.title} fill className="object-cover" sizes="64px" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center"><ShoppingBag className="h-6 w-6 text-muted-foreground/30" /></div>
-                      )}
-                      <Badge variant="secondary" className="absolute -end-2 -top-2 size-6 rounded-full p-0 text-xs">{item.quantity}</Badge>
-                    </Link>
+                    {/* Rozet overflow-hidden'lı Link'in DIŞINDA — kırpılmadan tam daire görünür */}
+                    <div className="relative flex-shrink-0">
+                      <Link href={`/urun/${item.merchandise.product.handle}`} className="relative block size-16 overflow-hidden rounded-lg bg-secondary">
+                        {item.merchandise.product.featuredImage ? (
+                          <Image src={item.merchandise.product.featuredImage.url} alt={item.merchandise.product.title} fill className="object-cover" sizes="64px" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center"><ShoppingBag className="h-6 w-6 text-muted-foreground/30" /></div>
+                        )}
+                      </Link>
+                      <Badge className="absolute -end-1.5 -top-1.5 size-5 justify-center rounded-full border-2 border-card p-0 text-[10px] leading-none">
+                        {item.quantity}
+                      </Badge>
+                    </div>
                     <div className="min-w-0 flex-1">
                       <Link href={`/urun/${item.merchandise.product.handle}`} className="block truncate text-sm font-medium hover:underline">
                         {item.merchandise.product.title}
@@ -430,7 +504,7 @@ export default function CheckoutPage() {
                   <span>{formatPrice(tax.toFixed(2))}</span>
                 </div>
                 {serverCart && serverCart.discountTotal > 0 ? (
-                  <div className="flex justify-between text-sm text-emerald-600">
+                  <div className="flex justify-between text-sm font-medium text-primary">
                     <span>İndirimler</span>
                     <span>-{formatPrice(serverCart.discountTotal.toFixed(2))}</span>
                   </div>
@@ -452,8 +526,8 @@ export default function CheckoutPage() {
               <Separator />
 
               <div className="flex flex-col gap-3 pt-1">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground"><Shield className="size-4 text-emerald-600" /> SSL ile güvenli ödeme</div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground"><Gift className="size-4 text-purple-600" /> Kolay iade</div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground"><Shield className="size-4 text-primary" /> SSL ile güvenli ödeme</div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground"><Gift className="size-4 text-primary" /> Kolay iade</div>
               </div>
             </CardContent>
           </Card>

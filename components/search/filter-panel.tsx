@@ -13,8 +13,7 @@ import { Badge } from "@/components/ui/badge";
 export interface FilterOptions {
   categories: { label: string; value: string }[];
   brands: { label: string; value: string }[];
-  sizes: string[];
-  colors: string[];
+  optionGroups: { name: string; values: string[] }[];
   priceRange: { min: number; max: number };
 }
 
@@ -41,7 +40,7 @@ function FilterSection({ title, children }: FilterSectionProps) {
 }
 
 export function FilterPanel({ options }: { options: FilterOptions }) {
-  const { filters, activeFilterCount, toggleArrayFilter, setFilter, clearAllFilters } =
+  const { filters, activeFilterCount, toggleArrayFilter, toggleOptionFilter, setFilter, clearAllFilters } =
     useFilterParams();
   const [open, setOpen] = useState(false);
 
@@ -171,55 +170,30 @@ export function FilterPanel({ options }: { options: FilterOptions }) {
             </div>
           </FilterSection>
 
-          {/* Size */}
-          {options.sizes.length > 0 && (
-            <>
-              <FilterSection title="Beden">
-                <div className="flex flex-wrap gap-2">
-                  {options.sizes.map((s) => {
-                    const isSelected = filters.size.includes(s);
-                    return (
-                      <button
-                        className={`flex h-8 min-w-[44px] items-center justify-center rounded-md border px-3 text-xs font-medium transition-all ${
-                          isSelected
-                            ? "border-foreground bg-foreground text-background"
-                            : "border-border bg-background hover:border-foreground/30"
-                        }`}
-                        key={s}
-                        onClick={() => toggleArrayFilter("size", s)}
-                        type="button"
-                      >
-                        {s}
-                      </button>
-                    );
-                  })}
-                </div>
-              </FilterSection>
-            </>
-          )}
-
-          {/* Color */}
-          {options.colors.length > 0 && (
-            <>
-              <FilterSection title="Renk">
-                <div className="grid gap-2">
-                  {options.colors.map((c) => (
-                    <label
-                      className="flex cursor-pointer items-center gap-2 text-sm"
-                      key={c}
+          {/* Varyant seçenekleri (Renk, Beden, ...) — üründeki selectedOptions'tan */}
+          {options.optionGroups.map((group) => (
+            <FilterSection key={group.name} title={group.name}>
+              <div className="flex flex-wrap gap-2">
+                {group.values.map((val) => {
+                  const isSelected = (filters.options[group.name] ?? []).includes(val);
+                  return (
+                    <button
+                      className={`flex h-8 min-w-[44px] items-center justify-center rounded-md border px-3 text-xs font-medium transition-all ${
+                        isSelected
+                          ? "border-foreground bg-foreground text-background"
+                          : "border-border bg-background hover:border-foreground/30"
+                      }`}
+                      key={val}
+                      onClick={() => toggleOptionFilter(group.name, val)}
+                      type="button"
                     >
-                      <Checkbox
-                        checked={filters.color.includes(c)}
-                        className="size-4"
-                        onCheckedChange={() => toggleArrayFilter("color", c)}
-                      />
-                      {c}
-                    </label>
-                  ))}
-                </div>
-              </FilterSection>
-            </>
-          )}
+                      {val}
+                    </button>
+                  );
+                })}
+              </div>
+            </FilterSection>
+          ))}
         </div>
 
         {/* Apply button at bottom */}

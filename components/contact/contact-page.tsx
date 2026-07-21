@@ -18,7 +18,7 @@ export function ContactPage({ store }: { store: ContactStore | null }) {
     : null;
 
   return (
-    <main className="container mx-auto px-4 pt-32 pb-16">
+    <main className="container mx-auto px-4 pt-8 pb-16">
       <div className="mb-10 max-w-2xl">
         <h1 className="font-serif text-3xl font-bold text-foreground md:text-4xl">İletişim</h1>
         <p className="mt-2 text-muted-foreground">

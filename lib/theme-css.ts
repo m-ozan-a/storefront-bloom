@@ -20,6 +20,26 @@ interface ManifestThemeShape {
   darkModeSupport?: boolean;
 }
 
+const GENERIC_FONTS = new Set(["sans-serif", "serif", "monospace", "system-ui", "ui-sans-serif", "ui-serif", "ui-monospace", "cursive", "fantasy", "inherit", "initial"]);
+
+// Manifest fontFamilies'ten ilk aile adlarını ayıklar (ör. "Inter, sans-serif" → "Inter").
+function firstFamily(value?: string): string | null {
+  if (!value) return null;
+  const name = value.split(",")[0].trim().replace(/['"]/g, "");
+  if (!name || GENERIC_FONTS.has(name.toLowerCase())) return null;
+  return name;
+}
+
+// Manifest fontlarını yüklemek için Google Fonts css2 URL'i üretir (yüklü olmayan fontlar render olsun).
+export function googleFontsUrl(theme: ManifestThemeShape | null | undefined): string | null {
+  const ff = theme?.fontFamilies;
+  if (!ff) return null;
+  const names = Array.from(new Set([firstFamily(ff.heading), firstFamily(ff.sans), firstFamily(ff.mono)].filter((n): n is string => !!n)));
+  if (names.length === 0) return null;
+  const families = names.map((n) => `family=${n.replace(/ /g, "+")}:wght@400;500;600;700`).join("&");
+  return `https://fonts.googleapis.com/css2?${families}&display=swap`;
+}
+
 // R2 manifest'in flat (camelCase) tema şekli için CSS değişkenleri üretir.
 export function generateThemeCssFromManifest(theme: ManifestThemeShape | null | undefined): string {
   const colors = theme?.colors;
@@ -27,7 +47,11 @@ export function generateThemeCssFromManifest(theme: ManifestThemeShape | null | 
   const lines: string[] = [":root {"];
   for (const [k, v] of Object.entries(colors)) lines.push(`  ${camelToCssVar(k)}: ${v};`);
   if (theme?.borderRadius) lines.push(`  --radius: ${theme.borderRadius};`);
-  if (theme?.fontFamilies?.heading) lines.push(`  --font-heading: ${theme.fontFamilies.heading};`);
+  if (theme?.fontFamilies?.heading) {
+    // Başlıklar `font-serif` kullanıyor → --font-serif'e de uygula
+    lines.push(`  --font-heading: ${theme.fontFamilies.heading};`);
+    lines.push(`  --font-serif: ${theme.fontFamilies.heading};`);
+  }
   if (theme?.fontFamilies?.sans) lines.push(`  --font-sans: ${theme.fontFamilies.sans};`);
   if (theme?.fontFamilies?.mono) lines.push(`  --font-mono: ${theme.fontFamilies.mono};`);
   lines.push("}");

@@ -25,6 +25,9 @@ export interface Product {
   discount?: number;
   campaignBadges?: CampaignBadge[];
   labels?: { title: string; slug: string }[];
+  collections?: { title: string; slug: string }[];
+  rating?: number | null;
+  reviewCount?: number;
 }
 
 export interface ProductOption {
@@ -55,6 +58,7 @@ export interface Image {
   altText: string;
   width: number;
   height: number;
+  blurData?: string | null;
 }
 
 export interface SEO {

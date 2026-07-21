@@ -5,11 +5,17 @@ import { ProductCard } from './product-card';
 
 interface ProductGridProps {
   products: Product[];
-  columns?: 1 | 2 | 3 | 4;
+  // Spec kontratı: katalog ProductListing.columns string enum ("2"|"3"|"4") gönderir,
+  // sayfa manifest'ten number geçer — ikisi de kabul edilir.
+  columns?: 1 | 2 | 3 | 4 | "1" | "2" | "3" | "4";
+  // Spec ProductListing.viewMode karşılığı: "list" tek kolona düşürür.
+  viewMode?: "grid" | "list";
   cardStyle?: "classic" | "modern" | "minimal";
 }
 
-export function ProductGrid({ products, columns = 4, cardStyle }: ProductGridProps) {
+export function ProductGrid({ products, columns = 4, viewMode, cardStyle }: ProductGridProps) {
+  const normalized = viewMode === "list" ? 1 : (Number(columns) as 1 | 2 | 3 | 4);
+  const cols = [1, 2, 3, 4].includes(normalized) ? normalized : 4;
   const gridCols = {
     1: 'grid-cols-1',
     2: 'grid-cols-2',
@@ -29,7 +35,7 @@ export function ProductGrid({ products, columns = 4, cardStyle }: ProductGridPro
   }
 
   return (
-    <div className={`grid ${gridCols[columns]} gap-4 md:gap-6`}>
+    <div className={`grid ${gridCols[cols]} gap-4 md:gap-6`}>
       {products.map((product, index) => (
         <ProductCard 
           key={product.id} 

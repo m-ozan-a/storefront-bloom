@@ -11,8 +11,7 @@ import {
   PaginationEllipsis,
 } from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
-
-const PAGE_SIZE = 12;
+import { PAGE_SIZE } from "@/lib/filter-params";
 
 function getVisiblePages(current: number, total: number): (number | "ellipsis")[] {
   if (total <= 7) {
@@ -159,5 +158,3 @@ function getPageHref(pathname: string, searchParams: URLSearchParams, page: numb
   }
   return `${pathname}?${params.toString()}`;
 }
-
-export { PAGE_SIZE };

@@ -7,7 +7,26 @@ import {
   useCallback,
   ReactNode,
 } from "react";
-import { signIn as apiSignIn, signUp as apiSignUp, getMe } from "@/actions";
+import { signIn as apiSignIn, signUp as apiSignUp, getMe, addToCartApi } from "@/actions";
+import { useCartStore } from "@/lib/owuan/stores";
+
+// Girişten önce lokalde (misafir) biriken sepet satırlarını server sepetine taşır.
+// Üye checkout server sepetinden çalıştığı için merge yapılmazsa sipariş boş gider.
+async function mergeLocalCartToServer() {
+  const { cart, fetchCart } = useCartStore.getState();
+  for (const line of cart.lines) {
+    try {
+      await addToCartApi(
+        line.merchandise.id || null,
+        line.quantity,
+        line.merchandise.product.id
+      );
+    } catch {
+      // tek satır başarısız olsa da kalanları taşımayı dene
+    }
+  }
+  await fetchCart();
+}
 
 export interface User {
   id: string;
@@ -54,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (typeof window !== "undefined") {
         localStorage.setItem("owuan-user", JSON.stringify(userData));
         localStorage.setItem("owuan-auth-token", result.token);
+        await mergeLocalCartToServer();
       }
     } catch (e) {
       setUser(null);
@@ -81,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (typeof window !== "undefined") {
           localStorage.setItem("owuan-user", JSON.stringify(userData));
           localStorage.setItem("owuan-auth-token", result.token);
+          await mergeLocalCartToServer();
         }
       } catch (e) {
         throw e;

@@ -57,13 +57,36 @@ export {
 
 export type {
   StorefrontManifest,
+  ProductUrls,
   HeaderData,
   FooterData,
   FooterColumn,
   NavLink,
-  FlatSpec,
-  SpecElement,
 } from "@/lib/owuan/manifest";
+
+// ---- Statik ürün listeleri (R2 → api.owuan.com CDN) ----
+export { getStaticProducts, getStaticProductRows } from "@/lib/owuan/static-products";
+export type { StorefrontProductRow, StaticProductFilter } from "@/lib/owuan/static-products";
+
+// ---- Katalog motoru (statik liste üstünde arama/filtre/facet) ----
+export { searchCatalog } from "@/lib/owuan/catalog";
+export type { CatalogQuery, CatalogResult, CatalogFacets, OptionGroup } from "@/lib/owuan/catalog";
+
+// ---- Entity listeleri (statik R2: categories/collections/brands/labels/campaigns) ----
+export {
+  getCategoriesList,
+  getCollectionsList,
+  getBrandsList,
+  getLabelsList,
+  getCampaignsList,
+} from "@/lib/owuan/entities";
+export type {
+  EntityCategory,
+  EntityCollection,
+  EntityBrand,
+  EntityLabel,
+  EntityCampaign,
+} from "@/lib/owuan/entities";
 
 // ---- Sepet / checkout / sipariş / adres / profil / favori / ödeme ----
 export {
@@ -87,6 +110,34 @@ export {
   getFavorites,
   addFavorite,
   removeFavorite,
+} from "@/lib/owuan/client";
+
+// ---- Yorumlar / iade / iptal / hediye kartı / şifre / hesap / iletişim ----
+export {
+  getReviews,
+  submitReview,
+  applyCoupon,
+  applyGiftCard,
+  getReturns,
+  getReturnDetail,
+  initiateReturn,
+  cancelOrder,
+  forgotPassword,
+  resetPassword,
+  changePassword,
+  deleteAccount,
+  submitContact,
+} from "@/lib/owuan/client";
+
+export type {
+  ReviewItem,
+  ReviewsData,
+  CouponApplyResult,
+  GiftCardApplyResult,
+  ReturnListItem,
+  ReturnDetailData,
+  ReturnDetailItemInfo,
+  ContactInput,
 } from "@/lib/owuan/client";
 
 // ---- Cross-sell / recommendations (owuan /storefront/cross-sell) ----

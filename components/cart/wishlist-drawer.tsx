@@ -34,7 +34,7 @@ export function WishlistDrawer() {
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && closeWishlist()}>
-      <SheetContent className="flex w-full flex-col sm:max-w-md">
+      <SheetContent className="flex w-full flex-col gap-0 px-5 py-5 sm:max-w-md">
         <SheetHeader className="border-b border-border pb-4">
           <SheetTitle className="flex items-center gap-2 text-lg font-semibold">
             <Heart className="h-5 w-5" />
@@ -60,16 +60,16 @@ export function WishlistDrawer() {
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto py-4">
-            <ul className="space-y-4">
+            <ul className="divide-y divide-border/60">
               {items.map((item) => {
                 const product = item.product;
                 if (!product) return null;
                 return (
-                  <li key={item.id} className="flex gap-4">
+                  <li key={item.id} className="flex gap-3.5 py-4 first:pt-0 last:pb-0">
                     <Link
                       href={`/urun/${product.handle}`}
                       onClick={closeWishlist}
-                      className="relative h-24 w-20 flex-shrink-0 overflow-hidden bg-secondary"
+                      className="relative h-24 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-secondary"
                     >
                       {product.featuredImage ? (
                         <Image
@@ -86,12 +86,12 @@ export function WishlistDrawer() {
                       )}
                     </Link>
                     <div className="flex flex-1 flex-col">
-                      <div className="flex justify-between">
-                        <div>
+                      <div className="flex justify-between gap-2">
+                        <div className="min-w-0">
                           <Link
                             href={`/urun/${product.handle}`}
                             onClick={closeWishlist}
-                            className="text-sm font-medium text-foreground hover:underline"
+                            className="line-clamp-2 text-sm font-medium leading-snug text-foreground hover:underline"
                           >
                             {product.title}
                           </Link>

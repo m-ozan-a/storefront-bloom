@@ -12,7 +12,7 @@ export default function FavoritesPage() {
 
   if (!enabled) {
     return (
-      <main className="container mx-auto flex min-h-[60vh] flex-col items-center justify-center px-4 pt-32 pb-16 text-center">
+      <main className="flex min-h-[60vh] w-full flex-col items-center justify-center px-5 py-5 text-center">
         <Heart className="h-16 w-16 text-muted-foreground/40" />
         <h1 className="mt-6 font-serif text-3xl font-bold text-foreground">Favorileriniz</h1>
         <p className="mt-2 text-muted-foreground">Favorilerinizi görmek için giriş yapın.</p>
@@ -24,8 +24,8 @@ export default function FavoritesPage() {
   }
 
   return (
-    <main className="container mx-auto px-4 pt-32 pb-16">
-      <h1 className="mb-8 font-serif text-3xl font-bold text-foreground md:text-4xl">Favorilerim</h1>
+    <main className="w-full px-5 py-5">
+      <h1 className="mb-5 font-serif text-2xl font-bold text-foreground md:text-3xl">Favorilerim</h1>
 
       {loading ? (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -72,7 +72,7 @@ export default function FavoritesPage() {
                 <button
                   onClick={() => toggleFavorite(fav.product!.id)}
                   aria-label="Favorilerden çıkar"
-                  className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full bg-background/80 text-rose-600 backdrop-blur-sm transition-all hover:bg-background"
+                  className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full bg-background/80 text-destructive backdrop-blur-sm transition-all hover:bg-background"
                 >
                   <Heart className="h-5 w-5 fill-current" />
                 </button>

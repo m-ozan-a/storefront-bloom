@@ -32,7 +32,7 @@ export function CartDrawer() {
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && closeCart()}>
-      <SheetContent className="flex w-full flex-col px-6 py-6 sm:max-w-md">
+      <SheetContent className="flex w-full flex-col gap-0 px-5 py-5 sm:max-w-md">
         <SheetHeader className="border-b border-border pb-4">
           <SheetTitle className="flex items-center gap-2 text-lg font-semibold">
             <ShoppingBag className="h-5 w-5" />
@@ -42,7 +42,7 @@ export function CartDrawer() {
         </SheetHeader>
 
         {error && (
-          <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+          <div className="mt-3 flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
             <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <p className="flex-1">{error}</p>
             <button onClick={clearError} className="flex-shrink-0 hover:opacity-70">
@@ -69,13 +69,13 @@ export function CartDrawer() {
         ) : (
           <>
             <div className="flex-1 overflow-y-auto py-4">
-              <ul className="space-y-4">
+              <ul className="divide-y divide-border/60">
                 {cart.lines.map((item) => (
-                  <li key={item.id} className="flex gap-4">
+                  <li key={item.id} className="flex gap-3.5 py-4 first:pt-0 last:pb-0">
                     <Link
                       href={`/urun/${item.merchandise.product.handle}`}
                       onClick={closeCart}
-                      className="relative h-24 w-20 flex-shrink-0 overflow-hidden bg-secondary"
+                      className="relative h-24 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-secondary"
                     >
                       {item.merchandise.product.featuredImage?.url ? (
                         <Image
@@ -92,12 +92,12 @@ export function CartDrawer() {
                       )}
                     </Link>
                     <div className="flex flex-1 flex-col">
-                      <div className="flex justify-between">
-                        <div>
+                      <div className="flex justify-between gap-2">
+                        <div className="min-w-0">
                           <Link
                             href={`/urun/${item.merchandise.product.handle}`}
                             onClick={closeCart}
-                            className="text-sm font-medium text-foreground hover:underline"
+                            className="line-clamp-2 text-sm font-medium leading-snug text-foreground hover:underline"
                           >
                             {item.merchandise.product.title}
                           </Link>
@@ -117,7 +117,7 @@ export function CartDrawer() {
                         </button>
                       </div>
                       <div className="mt-auto flex items-center justify-between">
-                        <div className="flex items-center border border-border">
+                        <div className="flex items-center overflow-hidden rounded-md border border-border">
                           <button
                             onClick={() =>
                               updateQuantity(item.id, item.quantity - 1)
@@ -170,7 +170,7 @@ export function CartDrawer() {
                 )}
                 {cart.appliedCampaigns && cart.appliedCampaigns.length > 0
                   ? cart.appliedCampaigns.map((c) => (
-                      <div key={c.uid} className="flex justify-between text-sm text-emerald-600">
+                      <div key={c.uid} className="flex justify-between text-sm font-medium text-primary">
                         <span className="truncate pr-2">{c.title}</span>
                         <span>-{formatPrice(c.discountApplied.toFixed(2))}</span>
                       </div>

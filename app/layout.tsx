@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { Suspense } from 'react';
 import Script from 'next/script';
-import { Inter, Playfair_Display } from 'next/font/google';
+import { Geist, Geist_Mono } from 'next/font/google';
+import { Outfit, Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { Header, Footer } from '@/components/layout';
 import { IframeNavigator } from '@/components/layout/iframe-navigator';
@@ -9,11 +10,13 @@ import { ClientDrawers } from '@/components/layout/client-drawers';
 import { AuthProvider } from '@/components/auth';
 import { WebSiteLd } from '@/components/seo/json-ld';
 import { getStorefrontManifest, getHeaderData, getFooterData } from '@/actions';
-import { generateThemeCssFromManifest } from '@/lib/theme-css';
+import { generateThemeCssFromManifest, googleFontsUrl } from '@/lib/theme-css';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
-const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair' });
+const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' });
+const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' });
+const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit', weight: ['400', '500', '600', '700'] });
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', weight: ['400', '500', '600'] });
 
 export async function generateMetadata(): Promise<Metadata> {
   const manifest = await getStorefrontManifest();
@@ -24,7 +27,13 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { default: title, template: `%s | ${siteName}` },
     description,
-    openGraph: { type: 'website', siteName, title, description },
+    openGraph: {
+      type: 'website',
+      siteName,
+      title,
+      description,
+      images: store?.ogImage ? [store.ogImage] : undefined,
+    },
     twitter: { card: 'summary_large_image', title, description },
     robots: { index: true, follow: true },
     icons: store?.favicon ? { icon: store.favicon } : undefined,
@@ -50,13 +59,23 @@ export default async function RootLayout({
   const footerData = getFooterData(manifest);
   const analytics = manifest?.analytics ?? {};
   const themeCSS = generateThemeCssFromManifest(manifest?.theme);
+  const fontsUrl = googleFontsUrl(manifest?.theme);
   const customCSS = (manifest?.theme?.customCss as string) || null;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3003';
-  const googleAnalyticsId = analytics.googleAnalyticsId;
+  const googleAnalyticsId = analytics.gtagId ?? analytics.googleAnalyticsId;
   const facebookPixelId = analytics.facebookPixelId;
 
   return (
-    <html lang="tr" className={`${inter.variable} ${playfair.variable} bg-background`}>
+    <html lang="tr" className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} ${inter.variable} bg-background`}>
+      <head>
+        {fontsUrl ? (
+          <>
+            <link rel="preconnect" href="https://fonts.googleapis.com" />
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+            <link rel="stylesheet" href={fontsUrl} />
+          </>
+        ) : null}
+      </head>
       <body className="font-sans antialiased">
         {themeCSS ? <style id="theme-vars" dangerouslySetInnerHTML={{ __html: themeCSS }} /> : null}
         {customCSS ? <style id="theme-custom-css" dangerouslySetInnerHTML={{ __html: customCSS }} /> : null}
@@ -68,12 +87,12 @@ export default async function RootLayout({
           <Header data={headerData} />
           {children}
           <Footer data={footerData} />
-          <div className="bg-black py-4">
+          <div className="border-t border-background/10 bg-foreground py-4">
             <a
               href="https://www.owuan.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="container mx-auto flex items-center justify-center gap-2 px-4 text-xs text-white/70 transition-colors hover:text-white"
+              className="flex w-full items-center justify-center gap-2 px-5 text-xs text-background/70 transition-colors hover:text-background"
             >
               <span>{store?.name ?? 'Bu mağaza'}</span>
               {/* eslint-disable-next-line @next/next/no-img-element */}

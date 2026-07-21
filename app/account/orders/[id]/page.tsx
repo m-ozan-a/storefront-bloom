@@ -12,9 +12,12 @@ import {
   Truck,
   CreditCard,
   ExternalLink,
+  XCircle,
+  Undo2,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '@/components/auth';
-import { getOrder, type OrderDetail } from '@/actions';
+import { getOrder, cancelOrder, type OrderDetail } from '@/actions';
 import { formatPrice } from '@/actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -56,6 +59,24 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState('');
+
+  const handleCancel = async () => {
+    if (!order) return;
+    if (!window.confirm('Siparişi iptal etmek istediğinize emin misiniz?')) return;
+    setIsCancelling(true);
+    setCancelError('');
+    try {
+      await cancelOrder(order.uid);
+      const updated = await getOrder(order.uid);
+      if (updated) setOrder(updated);
+    } catch (e) {
+      setCancelError(e instanceof Error ? e.message : 'Sipariş iptal edilemedi.');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -80,7 +101,7 @@ export default function OrderDetailPage() {
 
   if (!mounted || authLoading) {
     return (
-      <main className="container mx-auto px-4 pt-32 pb-16">
+      <main className="container mx-auto px-4 pt-8 pb-16">
         <div className="flex h-96 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-foreground border-t-transparent" />
         </div>
@@ -92,7 +113,7 @@ export default function OrderDetailPage() {
 
   if (isLoading) {
     return (
-      <main className="container mx-auto px-4 pt-32 pb-16">
+      <main className="container mx-auto px-4 pt-8 pb-16">
         <div className="flex h-96 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-foreground border-t-transparent" />
         </div>
@@ -102,7 +123,7 @@ export default function OrderDetailPage() {
 
   if (error || !order) {
     return (
-      <main className="container mx-auto px-4 pt-32 pb-16">
+      <main className="container mx-auto px-4 pt-8 pb-16">
         <Link
           href="/account/orders"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
@@ -124,7 +145,7 @@ export default function OrderDetailPage() {
   }
 
   return (
-    <main className="container mx-auto px-4 pt-32 pb-16">
+    <main className="container mx-auto px-4 pt-8 pb-16">
       <Link
         href="/account/orders"
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
@@ -149,10 +170,45 @@ export default function OrderDetailPage() {
             })}
           </p>
         </div>
-        <Badge variant={statusVariant[order.status] || 'default'} className="text-sm px-3 py-1.5">
-          {statusLabel[order.status] || order.status}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-3">
+          <Badge variant={statusVariant[order.status] || 'default'} className="text-sm px-3 py-1.5">
+            {statusLabel[order.status] || order.status}
+          </Badge>
+          {order.status !== 'cancelled' &&
+            order.deliveryStatus !== 'shipped' &&
+            order.deliveryStatus !== 'delivered' &&
+            order.paymentStatus !== 'completed' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCancel}
+                disabled={isCancelling}
+                className="gap-1.5 text-destructive hover:text-destructive"
+              >
+                {isCancelling ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <XCircle className="h-3.5 w-3.5" />
+                )}
+                Siparişi İptal Et
+              </Button>
+            )}
+          {order.deliveryStatus === 'delivered' &&
+            !['returned', 'partially_returned', 'waiting_return', 'cancelled'].includes(order.status) && (
+              <Button variant="outline" size="sm" asChild className="gap-1.5">
+                <Link href={`/account/returns/request?order=${order.uid}`}>
+                  <Undo2 className="h-3.5 w-3.5" />
+                  İade Talebi Oluştur
+                </Link>
+              </Button>
+            )}
+        </div>
       </div>
+      {cancelError && (
+        <div className="mt-4 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+          {cancelError}
+        </div>
+      )}
 
       {/* Status Timeline */}
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -273,7 +329,7 @@ export default function OrderDetailPage() {
                 </span>
               </div>
               {order.totalDiscount > 0 && (
-                <div className="flex justify-between text-sm text-emerald-600">
+                <div className="flex justify-between text-sm font-medium text-primary">
                   <span>İndirim</span>
                   <span>-{formatPrice(order.totalDiscount.toFixed(2))}</span>
                 </div>

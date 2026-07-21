@@ -31,7 +31,7 @@ export function AuthPromptDialog() {
     <Dialog open={open} onOpenChange={(o) => !o && close()}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader className="items-center text-center">
-          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
             <Heart className="h-6 w-6" />
           </div>
           <DialogTitle>Favorilere eklemek için üye olun</DialogTitle>

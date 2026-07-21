@@ -104,7 +104,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
                 />
               </div>
             ) : (
-              <span key={badge.campaignUid} className="rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white">
+              <span key={badge.campaignUid} className="rounded bg-primary px-2 py-1 text-xs font-medium text-primary-foreground">
                 {badge.label}
               </span>
             )
@@ -219,7 +219,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
         <Button
           variant="outline"
           size="icon"
-          className={cn('h-12 w-12', isWishlisted && 'text-rose-600')}
+          className={cn('h-12 w-12', isWishlisted && 'text-destructive')}
           onClick={handleWishlistToggle}
         >
           <Heart className={cn('h-5 w-5', isWishlisted && 'fill-current')} />

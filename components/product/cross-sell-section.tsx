@@ -32,7 +32,7 @@ export function SlimProductCard({
           </div>
         )}
         {hasDiscount && discountPercent != null && (
-          <span className="absolute left-2 top-2 rounded bg-rose-600 px-2 py-1 text-xs font-medium text-white">
+          <span className="absolute left-2 top-2 rounded bg-destructive px-2 py-1 text-xs font-medium text-white">
             %{discountPercent}
           </span>
         )}
@@ -42,7 +42,7 @@ export function SlimProductCard({
         <div className="flex items-center gap-2">
           {hasDiscount ? (
             <>
-              <span className="text-sm font-semibold text-rose-600">
+              <span className="text-sm font-semibold text-destructive">
                 {formatPrice(product.discountedPrice!)}
               </span>
               <span className="text-xs text-muted-foreground line-through">

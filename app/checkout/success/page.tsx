@@ -121,7 +121,7 @@ function SuccessContent() {
 
 export default function CheckoutSuccessPage() {
   return (
-    <main className="container mx-auto px-4 pt-32 pb-16">
+    <main className="container mx-auto px-4 pt-8 pb-16">
       <Suspense fallback={
         <div className="mx-auto max-w-lg text-center">
           <div className="flex justify-center">

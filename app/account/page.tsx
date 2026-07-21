@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { User, Package, Heart, MapPin, Settings, LogOut, ShoppingBag, ChevronRight, UserCircle } from 'lucide-react';
+import { User, Package, Heart, MapPin, LogOut, ShoppingBag, ChevronRight, UserCircle, Undo2, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/components/auth';
 import { getOrders, getAddresses, getFavorites, type OrderListItem } from '@/actions';
 import { getProductById } from '@/actions';
@@ -71,7 +71,7 @@ export default function AccountPage() {
 
   if (!mounted || isLoading) {
     return (
-      <main className="container mx-auto px-4 pt-32 pb-16">
+      <main className="container mx-auto px-4 pt-8 pb-16">
         <div className="flex h-96 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-foreground border-t-transparent" />
         </div>
@@ -89,7 +89,7 @@ export default function AccountPage() {
   };
 
   return (
-    <main className="container mx-auto px-4 pt-32 pb-16">
+    <main className="container mx-auto px-4 pt-8 pb-16">
       <div className="grid gap-8 lg:grid-cols-4">
         {/* Sidebar */}
         <aside className="lg:col-span-1">
@@ -139,6 +139,20 @@ export default function AccountPage() {
               >
                 <MapPin className="h-4 w-4" />
                 Addresses
+              </Link>
+              <Link
+                href="/account/returns"
+                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
+              >
+                <Undo2 className="h-4 w-4" />
+                İadelerim
+              </Link>
+              <Link
+                href="/account/security"
+                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
+              >
+                <ShieldCheck className="h-4 w-4" />
+                Hesap Güvenliği
               </Link>
               <button
                 onClick={handleSignOut}

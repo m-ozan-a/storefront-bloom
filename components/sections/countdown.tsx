@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-// Paylaşılan client component — hem json-render registry (components.tsx) hem
-// codegen üretilen sayfa (owuan/mastra/tools/codegen-tools.ts) bunu import eder.
+// Paylaşılan client component — codegen üretilen sayfalar bunu import eder.
 // Client interaktifliği gerektiği için Hero/Banner gibi gerçek dosya olarak tutulur;
 // codegen inline client kod üretmez.
 

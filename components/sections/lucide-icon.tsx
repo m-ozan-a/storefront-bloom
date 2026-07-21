@@ -28,7 +28,7 @@ import {
   type LucideIcon as LucideIconComponent,
 } from "lucide-react";
 
-// Curated commerce icon set. Hook-free → hem json-render registry hem codegen
+// Curated commerce icon set. Hook-free → codegen
 // server sayfasında render edilir. Agent TrustBadges/FeatureGrid icon alanına
 // PascalCase Lucide adı (ör. "Truck") yazar; eşleşmezse emoji/metin fallback.
 const ICONS: Record<string, LucideIconComponent> = {

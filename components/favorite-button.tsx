@@ -18,7 +18,7 @@ export function FavoriteButton({ productId, className }: { productId: string; cl
       aria-label={active ? 'Favorilerden çıkar' : 'Favorilere ekle'}
       className={cn(
         'flex h-9 w-9 items-center justify-center rounded-(--radius) bg-background/80 backdrop-blur-sm transition-all hover:bg-background',
-        active && 'text-rose-600',
+        active && 'text-destructive',
         className
       )}
     >

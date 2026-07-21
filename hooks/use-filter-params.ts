@@ -8,11 +8,12 @@ export interface FilterParams {
   brand: string[];
   minPrice: number | null;
   maxPrice: number | null;
-  size: string[];
-  color: string[];
+  options: Record<string, string[]>;
 }
 
-export const FILTER_PARAM_KEYS = ["category", "brand", "minPrice", "maxPrice", "size", "color"] as const;
+export const FILTER_PARAM_KEYS = ["category", "brand", "minPrice", "maxPrice", "opt"] as const;
+
+import { parseOptionParam, serializeOptionParam } from "@/lib/filter-params";
 
 export function parseFilterParams(searchParams: URLSearchParams): FilterParams {
   return {
@@ -20,8 +21,7 @@ export function parseFilterParams(searchParams: URLSearchParams): FilterParams {
     brand: searchParams.get("brand")?.split(",").filter(Boolean) ?? [],
     minPrice: searchParams.get("minPrice") ? Number(searchParams.get("minPrice")) : null,
     maxPrice: searchParams.get("maxPrice") ? Number(searchParams.get("maxPrice")) : null,
-    size: searchParams.get("size")?.split(",").filter(Boolean) ?? [],
-    color: searchParams.get("color")?.split(",").filter(Boolean) ?? [],
+    options: parseOptionParam(searchParams.get("opt")),
   };
 }
 
@@ -37,28 +37,37 @@ export function useFilterParams() {
     if (filters.category.length > 0) count++;
     if (filters.brand.length > 0) count++;
     if (filters.minPrice !== null || filters.maxPrice !== null) count++;
-    if (filters.size.length > 0) count++;
-    if (filters.color.length > 0) count++;
+    count += Object.values(filters.options).filter((v) => v.length > 0).length;
     return count;
   }, [filters]);
 
-  const setFilter = useCallback(
-    (key: keyof FilterParams, value: string | string[] | null) => {
+  const pushParams = useCallback(
+    (mutate: (params: URLSearchParams) => void) => {
       const params = new URLSearchParams(searchParams.toString());
-      if (value === null || (Array.isArray(value) && value.length === 0)) {
-        params.delete(key);
-      } else if (Array.isArray(value)) {
-        params.set(key, value.join(","));
-      } else {
-        params.set(key, String(value));
-      }
+      mutate(params);
+      params.delete("page");
       router.push(`${pathname}?${params.toString()}`, { scroll: false });
     },
     [searchParams, router, pathname]
   );
 
+  const setFilter = useCallback(
+    (key: "category" | "brand" | "minPrice" | "maxPrice", value: string | string[] | null) => {
+      pushParams((params) => {
+        if (value === null || (Array.isArray(value) && value.length === 0)) {
+          params.delete(key);
+        } else if (Array.isArray(value)) {
+          params.set(key, value.join(","));
+        } else {
+          params.set(key, String(value));
+        }
+      });
+    },
+    [pushParams]
+  );
+
   const toggleArrayFilter = useCallback(
-    (key: "category" | "brand" | "size" | "color", val: string) => {
+    (key: "category" | "brand", val: string) => {
       const current = filters[key];
       const next = current.includes(val)
         ? current.filter((v) => v !== val)
@@ -68,19 +77,34 @@ export function useFilterParams() {
     [filters, setFilter]
   );
 
+  const toggleOptionFilter = useCallback(
+    (name: string, value: string) => {
+      const current = filters.options[name] ?? [];
+      const nextVals = current.includes(value)
+        ? current.filter((v) => v !== value)
+        : [...current, value];
+      const next = { ...filters.options, [name]: nextVals };
+      const serialized = serializeOptionParam(next);
+      pushParams((params) => {
+        if (serialized) params.set("opt", serialized);
+        else params.delete("opt");
+      });
+    },
+    [filters, pushParams]
+  );
+
   const clearAllFilters = useCallback(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    for (const key of FILTER_PARAM_KEYS) {
-      params.delete(key);
-    }
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [searchParams, router, pathname]);
+    pushParams((params) => {
+      for (const key of FILTER_PARAM_KEYS) params.delete(key);
+    });
+  }, [pushParams]);
 
   return {
     filters,
     activeFilterCount,
     setFilter,
     toggleArrayFilter,
+    toggleOptionFilter,
     clearAllFilters,
   };
 }

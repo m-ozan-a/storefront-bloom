@@ -34,8 +34,8 @@ export default async function ContentPage({ params }: PageProps) {
   }
 
   return (
-    <main className="container mx-auto px-4 pt-32 pb-16 max-w-3xl">
-      <h1 className="text-3xl font-serif font-bold text-foreground mb-8">
+    <main className="mx-auto w-full max-w-3xl px-5 py-5">
+      <h1 className="text-2xl font-serif font-bold text-foreground mb-5">
         {page.title}
       </h1>
       <div

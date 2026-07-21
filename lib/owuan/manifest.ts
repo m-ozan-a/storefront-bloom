@@ -3,67 +3,120 @@
 // içerik aynı veriyle SSR edilir → yükleme aşamasında boş orta / flash olmaz.
 
 function resolveDataUrl(): string {
-  // 1) Tam override
+  // 1) Tam override (manifest.json dahil tam URL)
   if (process.env.NEXT_PUBLIC_STOREFRONT_DATA_URL) {
     return process.env.NEXT_PUBLIC_STOREFRONT_DATA_URL;
   }
-  // 2) CDN base + store slug (codegen her deploy'da STORE_SLUG yazar)
+  // 2) CDN base + orgId (codegen her deploy'da STORE_SLUG/orgId yazar)
   const cdn = process.env.NEXT_PUBLIC_STOREFRONT_CDN_URL;
   const slug = process.env.NEXT_PUBLIC_STORE_SLUG;
   if (cdn && slug) {
-    return `${cdn.replace(/\/$/, "")}/v1/storefront-data/${slug}`;
+    return `${cdn.replace(/\/$/, "")}/v1/storefront-data/${slug}/manifest.json`;
   }
-  // 3) Dev fallback (çalışan worker)
-  return "https://owuan-storefront-proxy-production.anarcheist.workers.dev/v1/storefront-data/luna-tekstil";
+  // 3) Prod fallback: api.owuan.com CF Worker
+  if (process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production") {
+    return `https://api.owuan.com/v1/storefront-data/${slug ?? "luna-tekstil"}/manifest.json`;
+  }
+  // 4) Dev fallback: lokal owuan, api.owuan.com ile aynı public path (auth yok)
+  return `http://localhost:3000/v1/storefront-data/${slug ?? "luna-tekstil"}/manifest.json`;
 }
 
 const STOREFRONT_DATA_URL = resolveDataUrl();
 
-export interface SpecElement {
-  type: string;
-  props?: Record<string, unknown>;
-  children?: string[];
+// manifest.json ile aynı klasördeki diğer statik dosyaların URL'i
+// (categories.json, reviews/product-{uid}.json, recommendations/product-{uid}.json ...)
+export function storefrontDataUrl(file: string): string {
+  return STOREFRONT_DATA_URL.replace(/manifest\.json$/, file);
 }
 
-export interface FlatSpec {
-  root: string;
-  elements: Record<string, SpecElement>;
+export interface ProductUrls {
+  all: string;
+  category: string;
+  collection: string;
+  brand: string;
+  label: string;
+  campaign: string;
 }
 
 export interface StorefrontManifest {
-  template: { sector: string; baseTemplate: string; wrappers: string[] };
+  _meta?: { orgId: string; version: number };
+  productUrls?: ProductUrls;
+  template?: { sector: string; baseTemplate: string; wrappers: string[] };
   store: {
     name: string;
     description: string | null;
-    logo: string | null;
-    favicon: string | null;
+    logo?: string | null;
+    favicon?: string | null;
+    ogImage?: string | null;
     phone: string | null;
     email: string | null;
     address: string | null;
-    social: Record<string, string | null>;
-    meta: { title: string | null; description: string | null };
+    social?: Record<string, string | null>;
+    meta?: { title: string | null; description: string | null };
+    allowGuestCheckout?: boolean;
+    // IBAN ve vergi bilgileri KVKK/güvenlik gereği public manifest'te YOK;
+    // havale detayı checkout sırasında API-key'li dinamik API'den alınır.
+    bankTransferEnabled?: boolean;
+    shopShippingEnabled?: boolean;
+    shopShippingName?: string | null;
+    shopShippingPrice?: number | null;
   };
-  analytics: Record<string, string | null>;
+  analytics?: {
+    gtagId?: string | null;
+    googleAnalyticsId?: string | null;
+    ga4PropertyId?: string | null;
+    facebookPixelId?: string | null;
+    tiktokPixelId?: string | null;
+    otherPixelId?: string | null;
+  };
+  // R2'de theme altında tasarım katmanına ait ek alanlar bulunabilir; client
+  // yalnızca aşağıdaki görsel/veri alanlarını okur, gerisini yok sayar.
   theme: Record<string, unknown> & {
     colors?: Record<string, string>;
     darkColors?: Record<string, string>;
     fontFamilies?: { heading?: string; sans?: string; mono?: string };
     customCss?: string;
     customHeadHtml?: string;
+    announcement?: { text?: string | null; enabled?: boolean } | null;
   };
-  categories: { uid: string; title: string; slug: string; image?: string | null; isActive: boolean }[];
-  collections: { uid: string; title: string; slug: string; description?: string | null; image?: string | null; isActive: boolean }[];
-  brands: { uid: string; title: string; slug: string; isActive: boolean }[];
-  pages: { slug: string; title: string }[];
-  wrapper: {
-    homepageSpec: FlatSpec | null;
-    headerSpec: FlatSpec | null;
-    footerSpec: FlatSpec | null;
-    listingSpec: FlatSpec | null;
-    productPageSpec: FlatSpec | null;
-  };
+  // Liste tipleri canlı R2 verisiyle birebir: uid/isActive R2'de YOK (owuan aktif
+  // olmayanları publish sırasında filtreler). isActive opsiyonel kaldı — eski
+  // `c.isActive !== false` denetimleri alan yokken de doğru çalışır.
+  categories: { uid?: string; title: string; slug: string; subTitle?: string; description?: string; image?: string | null; parentId?: string | number | null; isActive?: boolean }[];
+  collections: { uid?: string; title: string; slug: string; subTitle?: string; description?: string | null; image?: string | null; isActive?: boolean }[];
+  brands: { uid?: string; title: string; slug: string; logo?: string | null; description?: string | null; isActive?: boolean }[];
+  labels?: { uid?: string; title: string; slug: string; image?: string | null }[];
+  deliveryOptions?: { uid: string; title: string; deliveryFirm?: string | null; deliveryFirmLogo?: string | null; description?: string | null }[];
+  paymentOptions?: { uid: string; title: string; description?: string | null }[];
+  paymentGateways?: { uid: string; provider: string; name: string; isActive: boolean; isTestMode: boolean }[];
+  carrierGateways?: { uid: string; provider: string; name: string; isActive: boolean; isTestMode: boolean }[];
+  activeCampaigns?: {
+    uid: string;
+    title: string;
+    slug?: string;
+    description?: string | null;
+    campaignType: "discount_percent" | "discount_amount" | "buy_x_get_y" | "free_shipping" | "coupon";
+    discountPercent?: number | null;
+    discountAmount?: number | null;
+    minimumOrderAmount?: number | null;
+    maximumDiscountAmount?: number | null;
+    usageLimit?: number | null;
+    usageCount?: number | null;
+    startsAt?: number;
+    endsAt?: number;
+    badgeImage?: string | null;
+    bannerImage?: string | null;
+  }[];
+  pages: {
+    slug: string;
+    title: string;
+    content?: string | null;
+    metaTitle?: string | null;
+    metaDescription?: string | null;
+    isPublished?: boolean;
+  }[];
   brandDna?: Record<string, unknown>;
-  updatedAt?: string;
+  updatedAt?: number;
 }
 
 export interface NavLink {
@@ -104,6 +157,11 @@ export interface HeaderData {
   announcement: string | null;
   tagline: string | null;
   style: string | null;
+  // Spec kontratı (header.json show* bayrakları) — undefined = göster
+  showSearch?: boolean;
+  showCart?: boolean;
+  showAccount?: boolean;
+  showWishlist?: boolean;
 }
 
 export interface FooterColumn {
@@ -123,29 +181,14 @@ export interface FooterData {
   style: string | null;
 }
 
-function rootProps(spec: FlatSpec | null | undefined): Record<string, unknown> {
-  if (!spec?.root) return {};
-  return spec.elements?.[spec.root]?.props ?? {};
-}
-
-function asLinks(v: unknown): NavLink[] {
-  if (!Array.isArray(v)) return [];
-  return v
-    .filter((x): x is { label: string; url: string } =>
-      !!x && typeof (x as { label?: unknown }).label === "string" && typeof (x as { url?: unknown }).url === "string")
-    .map((x) => ({ label: x.label, url: x.url }));
-}
-
 export function getHeaderData(manifest: StorefrontManifest | null): HeaderData {
   const store = manifest?.store;
-  const p = rootProps(manifest?.wrapper?.headerSpec);
   const tagline = manifest?.brandDna?.tagline;
   const navHeader = (manifest?.theme as Record<string, unknown> | undefined)?.navigation as
     | { header?: unknown }
     | undefined;
-  // Öncelik: theme.navigation.header → headerSpec.links → kategorilerden fallback
+  // Öncelik: theme.navigation.header → kategorilerden fallback
   let links = parseNav(navHeader?.header);
-  if (links.length === 0) links = asLinks(p.links);
   if (links.length === 0) {
     const cats = (manifest?.categories ?? []).filter((c) => c.isActive !== false);
     links = [
@@ -158,7 +201,10 @@ export function getHeaderData(manifest: StorefrontManifest | null): HeaderData {
     storeName: store?.name ?? "Mağaza",
     logo: store?.logo ?? null,
     links,
-    announcement: typeof p.announcement === "string" ? p.announcement : null,
+    announcement:
+      manifest?.theme?.announcement?.enabled && typeof manifest.theme.announcement.text === "string"
+        ? manifest.theme.announcement.text
+        : null,
     tagline: typeof tagline === "string" ? tagline : null,
     style: typeof (manifest?.theme as Record<string, unknown> | undefined)?.headerStyle === "string"
       ? (manifest?.theme as Record<string, unknown>).headerStyle as string
@@ -168,12 +214,16 @@ export function getHeaderData(manifest: StorefrontManifest | null): HeaderData {
 
 export function getFooterData(manifest: StorefrontManifest | null): FooterData {
   const store = manifest?.store;
-  const p = rootProps(manifest?.wrapper?.footerSpec);
-  const columns: FooterColumn[] = Array.isArray(p.columns)
-    ? (p.columns as { title?: string; links?: unknown }[])
-        .filter((c) => typeof c?.title === "string")
-        .map((c) => ({ title: c.title as string, links: asLinks(c.links) }))
-    : [];
+  // Kolonlar: yayınlanmış içerik sayfalarından kurumsal kolon üretilir;
+  // footer içeriğinin tamamı codegen ile wrapper içine yazıldığında bu yalnızca fallback'tir.
+  const pages = (manifest?.pages ?? []).filter((pg) => pg.isPublished !== false);
+  const columns: FooterColumn[] =
+    pages.length > 0
+      ? [{
+          title: "Kurumsal",
+          links: pages.map((pg) => ({ label: pg.title, url: `/content/${pg.slug}` })),
+        }]
+      : [];
   return {
     storeName: store?.name ?? "Mağaza",
     description: store?.description ?? null,
@@ -195,7 +245,9 @@ export async function getStorefrontManifest(): Promise<StorefrontManifest | null
   try {
     const res = await fetch(STOREFRONT_DATA_URL, { next: { revalidate: 3600, tags: ["manifest"] } });
     if (!res.ok) return null;
-    return (await res.json()) as StorefrontManifest;
+    // Statik R2 yanıtı düz JSON; dinamik fallback { success, data } sarmalı döner.
+    const json = (await res.json()) as StorefrontManifest & { success?: boolean; data?: StorefrontManifest };
+    return json.data ?? json;
   } catch {
     return null;
   }

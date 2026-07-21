@@ -11,78 +11,80 @@ function TiktokIcon({ className }: { className?: string }) {
   );
 }
 
+function TwitterXIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+}
+
 const SOCIAL_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   instagram: Instagram,
   facebook: Facebook,
   youtube: Youtube,
   linkedin: Linkedin,
   tiktok: TiktokIcon,
+  twitter: TwitterXIcon,
+  x: TwitterXIcon,
 };
 
-export function Footer({ data }: { data: FooterData }) {
+const PAYMENT_ICONS = [
+  { src: "https://cdn.mignite.app/ws/works_01KGFKTHDC6ZD3WS7GQTX8992N/visa-01KGM4VCEN4S70B20CHKYRKYHD.svg", alt: "Visa" },
+  { src: "https://cdn.mignite.app/ws/works_01KGFKTHDC6ZD3WS7GQTX8992N/mastercard-01KGM4VC6Q7D8S2A8GGBZZ9WH2.svg", alt: "Mastercard" },
+  { src: "https://cdn.mignite.app/ws/works_01KGFKTHDC6ZD3WS7GQTX8992N/paypal-01KGM4VBX940SCWM1DAE1SPAQH.svg", alt: "PayPal" },
+  { src: "https://cdn.mignite.app/ws/works_01KGFKTHDC6ZD3WS7GQTX8992N/klarna-01KGM4VBN2SGCV6FSX1MBC5GQJ.svg", alt: "Klarna" },
+];
+
+export function Footer({ data, logoText }: { data: FooterData; logoText?: string }) {
   const year = new Date().getFullYear();
+  const brandName = logoText ?? data.storeName;
   const socials = Object.entries(data.social).filter(([, url]) => !!url) as [string, string][];
 
   return (
-    <footer className="bg-foreground text-background" data-footer-style={data.style ?? "default"}>
-      {/* Newsletter */}
-      <div className="border-b border-background/10">
-        <div className="container mx-auto px-4 py-12">
-          <div className="mx-auto max-w-xl text-center">
-            <h3 className="text-2xl font-serif font-bold">
-              {data.storeName ? `${data.storeName} dünyasına katılın` : "Bültenimize abone olun"}
-            </h3>
-            <p className="mt-2 text-sm text-background/70">
-              Yeni ürünler, özel teklifler ve stil ilhamı için bültenimize abone olun.
-            </p>
-            <div className="mt-6">
+    <footer className="bg-neutral-900 text-neutral-50 w-full">
+      <div className="content-container flex flex-col w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 py-16">
+          {/* Brand Column */}
+          <div className="flex flex-col gap-y-6">
+            <Link
+              href="/"
+              className="text-2xl font-[family-name:var(--font-serif)] font-semibold hover:text-neutral-300 transition-colors w-fit uppercase tracking-tight"
+            >
+              {brandName}
+            </Link>
+            {data.description ? (
+              <p className="text-neutral-400 max-w-sm text-sm leading-relaxed">
+                {data.description}
+              </p>
+            ) : (
+              <p className="text-neutral-400 max-w-sm text-sm leading-relaxed">
+                Premium athleisure designed for movement. Thoughtfully crafted essentials
+                that move seamlessly from studio to street.
+              </p>
+            )}
+            {/* Newsletter */}
+            <div className="pt-2">
+              <p className="text-xs text-neutral-400 mb-3 uppercase tracking-wide">
+                Newsletter
+              </p>
               <NewsletterForm />
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Main */}
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-          {/* Brand */}
-          <div>
-            <Link href="/" className="inline-block">
-              <span className="text-2xl font-serif font-bold">{data.storeName}</span>
-            </Link>
-            {data.description ? (
-              <p className="mt-4 text-sm text-background/70 leading-relaxed">{data.description}</p>
-            ) : null}
-            {socials.length > 0 ? (
-              <div className="mt-6 flex gap-4">
-                {socials.map(([name, url]) => {
-                  const Icon = SOCIAL_ICONS[name];
-                  if (!Icon) return null;
-                  return (
-                    <a
-                      key={name}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-background/70 transition-colors hover:text-background"
-                      aria-label={name}
-                    >
-                      <Icon className="h-5 w-5" />
-                    </a>
-                  );
-                })}
-              </div>
-            ) : null}
-          </div>
-
-          {/* Alışveriş (collections) */}
+          {/* Shop Column */}
           {data.collections.length > 0 ? (
-            <div>
-              <h4 className="font-semibold">Alışveriş</h4>
-              <ul className="mt-4 space-y-2">
+            <div className="flex flex-col gap-y-6">
+              <h3 className="text-neutral-50 text-xs font-semibold uppercase tracking-wider">
+                Shop
+              </h3>
+              <ul className="space-y-3">
                 {data.collections.slice(0, 6).map((c) => (
                   <li key={c.slug}>
-                    <Link href={`/search/${c.slug}`} className="text-sm text-background/70 transition-colors hover:text-background">
+                    <Link
+                      href={`/search/${c.slug}`}
+                      className="text-neutral-400 hover:text-neutral-200 transition-colors text-sm"
+                    >
                       {c.title}
                     </Link>
                   </li>
@@ -91,52 +93,139 @@ export function Footer({ data }: { data: FooterData }) {
             </div>
           ) : null}
 
-          {/* Manifest footer columns */}
-          {data.columns.map((col) => (
-            <div key={col.title}>
-              <h4 className="font-semibold">{col.title}</h4>
-              <ul className="mt-4 space-y-2">
-                {col.links.map((l) => (
-                  <li key={`${l.label}-${l.url}`}>
-                    <Link href={l.url} className="text-sm text-background/70 transition-colors hover:text-background">
-                      {l.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          {/* About Column */}
+          <div className="flex flex-col gap-y-6">
+            <h3 className="text-neutral-50 text-xs font-semibold uppercase tracking-wider">
+              About
+            </h3>
+            <ul className="space-y-3">
+              <li>
+                <Link href="/content/about" className="text-neutral-400 hover:text-neutral-200 transition-colors text-sm">
+                  Our Story
+                </Link>
+              </li>
+              <li>
+                <Link href="/content/faq" className="text-neutral-400 hover:text-neutral-200 transition-colors text-sm">
+                  FAQ
+                </Link>
+              </li>
+              <li>
+                <Link href="/content/payments" className="text-neutral-400 hover:text-neutral-200 transition-colors text-sm">
+                  Payments
+                </Link>
+              </li>
+              <li>
+                <Link href="/content/shipping" className="text-neutral-400 hover:text-neutral-200 transition-colors text-sm">
+                  Shipping
+                </Link>
+              </li>
+              <li>
+                <Link href="/content/returns" className="text-neutral-400 hover:text-neutral-200 transition-colors text-sm">
+                  Returns
+                </Link>
+              </li>
+              <li>
+                <Link href="/content/contact" className="text-neutral-400 hover:text-neutral-200 transition-colors text-sm">
+                  Contact
+                </Link>
+              </li>
+            </ul>
+          </div>
 
-          {/* İletişim */}
-          {data.email || data.phone || data.address ? (
-            <div>
-              <h4 className="font-semibold">İletişim</h4>
-              <ul className="mt-4 space-y-2 text-sm text-background/70">
-                {data.email ? (
-                  <li>
-                    <a href={`mailto:${data.email}`} className="hover:text-background">{data.email}</a>
-                  </li>
-                ) : null}
-                {data.phone ? (
-                  <li>
-                    <a href={`tel:${data.phone.replace(/\s/g, "")}`} className="hover:text-background">{data.phone}</a>
-                  </li>
-                ) : null}
-                {data.address ? <li className="pt-1 leading-relaxed">{data.address}</li> : null}
-              </ul>
-            </div>
-          ) : null}
+          {/* Support / Contact Column */}
+          <div className="flex flex-col gap-y-6">
+            <h3 className="text-neutral-50 text-xs font-semibold uppercase tracking-wider">
+              Support
+            </h3>
+            {data.email ? (
+              <div>
+                <p className="text-xs text-neutral-400 uppercase tracking-wide">
+                  Customer Care
+                </p>
+                <a href={`mailto:${data.email}`} className="text-sm text-neutral-300 mt-2 hover:text-neutral-100 transition-colors">
+                  {data.email}
+                </a>
+              </div>
+            ) : (
+              <div>
+                <p className="text-xs text-neutral-400 uppercase tracking-wide">
+                  Customer Care
+                </p>
+                <p className="text-sm text-neutral-300 mt-2">
+                  hello@essentials.com
+                </p>
+              </div>
+            )}
+            {data.phone ? (
+              <div>
+                <p className="text-xs text-neutral-400 uppercase tracking-wide">
+                  Phone
+                </p>
+                <a href={`tel:${data.phone.replace(/\s/g, "")}`} className="text-sm text-neutral-300 mt-2 hover:text-neutral-100 transition-colors">
+                  {data.phone}
+                </a>
+              </div>
+            ) : null}
+          </div>
         </div>
-      </div>
 
-      {/* Bottom Bar */}
-      <div className="border-t border-background/10">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col items-center justify-between gap-4 text-sm text-background/70 md:flex-row">
-            <p>&copy; {year} {data.storeName}. Tüm hakları saklıdır.</p>
-            <div className="flex gap-6">
-              <Link href="/content/privacy" className="hover:text-background">Gizlilik Politikası</Link>
-              <Link href="/content/terms" className="hover:text-background">Kullanım Koşulları</Link>
+        {/* Bottom Section */}
+        <div className="border-t border-neutral-800 py-8">
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+              <span className="text-xs text-neutral-500">
+                &copy; {year} {brandName}. All rights reserved.
+              </span>
+
+              {/* Social Icons */}
+              {socials.length > 0 ? (
+                <div className="flex items-center gap-5">
+                  {socials.map(([name, url]) => {
+                    const Icon = SOCIAL_ICONS[name];
+                    if (!Icon) return null;
+                    return (
+                      <a
+                        key={name}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-neutral-500 hover:text-neutral-300 transition-colors"
+                        aria-label={name}
+                      >
+                        <Icon className="w-4 h-4" />
+                      </a>
+                    );
+                  })}
+                </div>
+              ) : null}
+
+              {/* Payment Methods */}
+              <div className="flex items-center gap-3" suppressHydrationWarning>
+                {PAYMENT_ICONS.map((payment) => (
+                  <img
+                    key={payment.alt}
+                    src={payment.src}
+                    alt={payment.alt}
+                    className="h-7 w-auto object-contain"
+                    suppressHydrationWarning
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap justify-center md:justify-start items-center gap-6 text-xs">
+              <Link
+                href="/content/privacy"
+                className="text-neutral-400 hover:text-neutral-200 transition-colors"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                href="/content/terms"
+                className="text-neutral-400 hover:text-neutral-200 transition-colors"
+              >
+                Terms of Service
+              </Link>
             </div>
           </div>
         </div>
